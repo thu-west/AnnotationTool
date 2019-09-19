@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 2017-8-2 14:57:29 by Hibernate Tools 3.5.0.Final -->
+<hibernate-mapping>
+    <class name="annotation.model.OtherFeatures" table="other_features">
+        <id name="id" type="java.lang.Integer">
+            <column name="id" />
+            <generator class="identity" />
+        </id>
+        <property name="dengjihao" type="string">
+            <column name="dengjihao" />
+        </property>
+        <property name="nianling" type="java.lang.Integer">
+            <column name="nianling" />
+        </property>
+        <property name="xingbie" type="string">
+            <column name="xingbie" />
+        </property>
+        <property name="jixing" type="string">
+            <column name="jixing">
+                <comment>&#202;&#199;&#183;&#241;&#188;&#177;&#208;&#212;</comment>
+            </column>
+        </property>
+        <property name="xiongtongchengdu" type="string">
+            <column name="xiongtongchengdu">
+                <comment>&#208;&#216;&#205;&#180;&#179;&#204;&#182;&#200;</comment>
+            </column>
+        </property>
+        <property name="bingshi" type="string">
+            <column name="bingshi">
+                <comment>&#178;&#161;&#202;&#183;</comment>
+            </column>
+        </property>
+        <property name="ucg" type="string">
+            <column name="UCG" />
+        </property>
+        <property name="lvef" type="string">
+            <column name="LVEF" />
+        </property>
+        <property name="diseasename" type="string">
+            <column name="diseasename">
+                <comment>&#188;&#178;&#178;&#161;&#195;&#251;&#179;&#198;</comment>
+            </column>
+        </property>
+        <property name="time" type="timestamp">
+            <column name="time" length="19">
+                <comment>&#200;&#235;&#191;&#226;&#202;&#177;&#188;&#228;</comment>
+            </column>
+        </property>
+    </class>
+</hibernate-mapping>

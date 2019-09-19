@@ -1,0 +1,96 @@
+.article {
+	position: absolute;
+	overflow-y: scroll;
+	height: 97%;
+	background: #F8F9F9;
+	width:100%;
+	text-align:left;	
+}
+.article p,.message span {
+	font-size: 16px;
+	margin: 1%;
+	line-height: 23px;
+	letter-spacing: 1px;
+}
+
+.dowebok { 
+	list-style-type: none;
+	display: inline-block;
+}
+
+.middle-option li {
+	display: inline-block;
+	margin: 0px 0;
+}
+
+.button-edit{
+	right:2px;
+}
+
+.assist-message{
+	background-color:#E0E0E0;
+    border: 2px dotted;
+    border-color:#D6D6D6;
+    margin:3%;
+}
+.edit-message {
+	font-size: 16px;
+	position:absolute;	
+	margin:3%;
+	width:90%;
+	height:200px;
+
+}
+
+.middle-option {
+    border: 2px dotted;
+    border-color:#D6D6D6;    
+	possition:absolute;
+    line-height:10px;
+    letter-spacing: 1px;
+    
+}
+
+#middle span {
+	border-radius: 4px;
+}
+.reltable {
+	height: 85%;
+}
+.search {
+	height: 15%;
+	border-bottom: solid 1px #C0C0C0;
+}
+#myTab {
+	margin-left: 2%;
+	width: 97%;
+}
+.searchCont {
+	margin-left: 2%;
+	width: 60%;
+}
+table {
+	margin-top: 2%;
+	margin-left: 1%;
+	margin-right: 1%;
+	width: 97%;
+}
+.modelButton {
+	height: 46%;
+	margin-bottom: 1%;
+	border-bottom: solid 1px #C0C0C0;
+}
+.add {
+	margin-top: 2%;
+	margin-left: 2%;
+}
+.add a{
+	color: #555555;
+}
+.relationButton {
+	height: 46%;
+}
+.button, .relbutton {
+	margin-top: 1%;
+	margin-left: 1%;
+}

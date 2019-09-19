@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-configuration PUBLIC
+		"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+		"http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="hibernate.connection.driver_class">org.gjt.mm.mysql.Driver</property>
+        <property name="hibernate.connection.password">****</property>
+        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/kg</property>
+        <property name="hibernate.connection.username">root</property>
+        <property name="hibernate.dialect">org.hibernate.dialect.MySQLDialect</property>
+        <property name="default_catalog">kg</property>
+        
+        <mapping resource="annotation/model/Entity.hbm.xml" />
+        <mapping resource="annotation/model/EntityLabel.hbm.xml" />
+        <mapping resource="annotation/model/Relation.hbm.xml"/>
+        <mapping resource="annotation/model/RelationLabel.hbm.xml"/>
+        <mapping resource="annotation/model/User.hbm.xml" />
+     
+   <!-- <mapping resource="annotation/model/Sample.hbm.xml"/> -->   
+   <!-- <mapping resource="annotation/model/Disease.hbm.xml" /> -->
+        <mapping resource="annotation/model/MedicalHistory.hbm.xml"/>
+        <mapping resource="annotation/model/OtherFeatures.hbm.xml"/>
+
+    
+    </session-factory>
+</hibernate-configuration>

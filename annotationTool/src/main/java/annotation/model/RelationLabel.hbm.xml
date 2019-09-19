@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 2017-8-2 14:57:29 by Hibernate Tools 3.5.0.Final -->
+<hibernate-mapping>
+    <class name="annotation.model.RelationLabel" table="relation_label">
+        <id name="id" type="java.lang.Integer">
+            <column name="id" />
+            <generator class="identity" />
+        </id>
+        <property name="label" type="string">
+            <column name="label">
+                <comment>&#185;&#216;&#207;&#181;&#177;&#234;&#199;&#169;</comment>
+            </column>
+        </property>
+        <property name="username" type="string">
+            <column name="username">
+                <comment>&#211;&#195;&#187;&#167;&#195;&#251;</comment>
+            </column>
+        </property>
+    </class>
+</hibernate-mapping>

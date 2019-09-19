@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<!-- Generated 2017-8-2 14:57:29 by Hibernate Tools 3.5.0.Final -->
+<hibernate-mapping>
+    <class name="annotation.model.MedicalHistory" table="MedicalHistory">
+        <id name="id" type="java.lang.Integer">
+            <column name="id" />
+            <generator class="identity" />
+        </id>
+        <property name="jbxxDengjihao" type="string">
+            <column name="jbxx_dengjihao" length="65535" />
+        </property>
+        <property name="jbxxNianling" type="java.lang.Integer">
+            <column name="jbxx_nianling" />
+        </property>
+        <property name="jbxxXingbie" type="string">
+            <column name="jbxx_xingbie" length="65535" />
+        </property>
+        <property name="dzblZhusu" type="string">
+            <column name="dzbl_zhusu" length="65535" />
+        </property>
+        <property name="dzblXianbingshi" type="string">
+            <column name="dzbl_xianbingshi" length="65535" />
+        </property>
+        <property name="dzblJiwangbingshi" type="string">
+            <column name="dzbl_jiwangbingshi" length="65535" />
+        </property>
+        <property name="dzblChuanranbingshi" type="string">
+            <column name="dzbl_chuanranbingshi" length="65535" />
+        </property>
+        <property name="dzblYichuanbingshi" type="string">
+            <column name="dzbl_yichuanbingshi" length="65535" />
+        </property>
+        <property name="dzblShiyan" type="string">
+            <column name="dzbl_shiyan" length="65535" />
+        </property>
+        <property name="dzblShijiu" type="string">
+            <column name="dzbl_shijiu" length="65535" />
+        </property>
+        <property name="dzblGuominshi" type="string">
+            <column name="dzbl_guominshi" length="65535" />
+        </property>
+        <property name="dzblWaishangshi" type="string">
+            <column name="dzbl_waishangshi" length="65535" />
+        </property>
+        <property name="dzblShoushushi" type="string">
+            <column name="dzbl_shoushushi" length="65535" />
+        </property>
+        <property name="jszdRuyuanzhenduanmenzhenzeweimenzhenzhenduan" type="string">
+            <column name="jszd_ruyuanzhenduanmenzhenzeweimenzhenzhenduan" length="65535" />
+        </property>
+        <property name="jszdChuyuanzhenduansuoyou" type="string">
+            <column name="jszd_chuyuanzhenduansuoyou" length="65535" />
+        </property>
+        <property name="jcCaisechaoshengkeJcjlHqsyz" type="string">
+            <column name="jc_caisechaoshengke_jcjl_hqsyz" length="65535" />
+        </property>
+        <property name="jcCaisechaoshengkeJcsjHqsyz" type="string">
+            <column name="jc_caisechaoshengke_jcsj_hqsyz" length="65535" />
+        </property>
+        <property name="jcChuangpangJcjlHqsyz" type="string">
+            <column name="jc_chuangpang_jcjl_hqsyz" length="65535" />
+        </property>
+        <property name="jcChuangpangJcsjHqsyz" type="string">
+            <column name="jc_chuangpang_jcsj_hqsyz" length="65535" />
+        </property>
+        <property name="editXianbingshi" type="string">
+            <column name="edit_xianbingshi" length="65535" />
+        </property>
+        <property name="status" type="string">
+            <column name="status">
+                <comment>&#202;&#199;&#183;&#241;&#205;&#234;&#179;&#201;&#177;&#234;&#215;&#162;</comment>
+            </column>
+        </property>
+    </class>
+</hibernate-mapping>

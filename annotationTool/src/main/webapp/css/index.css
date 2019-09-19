@@ -1,0 +1,165 @@
+* {
+    font: 14px/1.5 "Helvetica Neue",Helvetica,Arial,"Microsoft Yahei","Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
+
+}
+* {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
+
+body {
+    /*background: #f0f0f0;*/
+    background: #FFFFFF;
+}
+
+#menuBar {
+    width: 100%;
+    height: 100%;
+    margin-left:0;
+    margin-top: 0;
+}
+.filterinput {
+    background-color: rgba(249, 244, 244, 0);
+    border-radius: 15px;
+    width: 90%;
+    height: 30px;
+    border: thin solid #FFF;
+    text-indent: 0.5em;
+    font-weight: bold;
+    color: #FFF;
+}
+#demo-list a {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+.black{
+    height:100%;
+}
+.user {
+	bottom: 0;
+}
+#form{
+    text-align: center;
+    padding: 0;
+}
+
+#content {
+    width: 100%;
+    height: 100%;
+
+}
+
+#leftMenu {
+    height: 100%;
+    width: 15%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+}
+#oprate {
+	background: #f0f0f0;
+    height: 100%;
+    width: 20%;
+    position: absolute;
+    left: 10%;
+    top: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+#main {
+	text-align: center;
+	left: 15%;
+	width: 85%;
+	position: absolute;
+	height: auto;
+	background-color: #F8F9F9;
+	top: 0;
+    bottom:0;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+.help, .userinfo {
+	white-space:nowrap; 
+	padding: 5%;
+	border: solid 1px #C0C0C0;
+	margin-top: 10%;
+}
+.userinfo ul {
+	width: 50%;
+	margin:0 auto;
+	margin-top: 2%;
+}
+
+.userinfo li {
+	list-style: none;
+	margin-top: 2%;
+}
+.userinfo li p {
+
+	width: 10%;
+	margin-right: 5px;
+	font-size: 16px;
+	margin-bottom: 5px;
+	display: inline-block;
+	text-align-last: justify;
+
+}
+.name, .password, .passwordConfirm {
+	height: 25px;
+	width: 50%;
+	font-size: 16px;
+	margin-left: 10px;
+	display: inline;
+}
+.file {
+	margin-top: 5%;
+}
+#middle {
+    width: 65%;
+    height: auto;
+    position: absolute;
+    left: 15%;
+    top: 0;
+    bottom:0;
+    background-color: #f1f1f1;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    text-align:center;
+}
+#right {
+	border-left: solid 1px #C0C0C0;
+    width: 20%;
+    height: auto;
+    position: absolute;
+    left: 80%;
+    top: 0;
+    bottom:0;
+    background-color: #f1f1f1;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+.append{
+	list-style-type: none;
+	display: inline;
+}
+.append label {
+	display: inline;
+}
+.append input {
+	display: inline;
+	margin-top: 5%;
+	margin-left: auto;
+	height: 20px;
+	width: 20%;
+	margin-right: 2%;
+}
+.selectId {
+	margin: 10px;
+}
+
+
