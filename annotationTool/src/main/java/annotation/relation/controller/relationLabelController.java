@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -51,10 +52,10 @@ public class relationLabelController {
 		try{
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT id FROM RelationLabel where label = \'"+content+"\'";
-			Query query = session.createQuery(hql);
-			results = query.list();	
-//			label = (Labels)session.get(Labels.class, results.get(0).getId());
+			List<RelationLabel> labels = session.createCriteria(RelationLabel.class).add(Restrictions.eq("label", content)).list();
+			for(RelationLabel label : labels) {
+				results.add(label.getId());
+			}
 			System.out.println(results.get(0));
 			
 			rl = new RelationLabel();
@@ -66,7 +67,7 @@ public class relationLabelController {
 		}catch(Exception e)
 		{
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		}finally{
 			HibernateUtil.closeSession(session);
 		}
@@ -75,8 +76,6 @@ public class relationLabelController {
 	}
 	
 	public void insertByHibernate(JSONObject jo, String username){
-	
-		
 		Session session = null;
 		try{
 			session = HibernateUtil.factory.openSession();
@@ -91,7 +90,7 @@ public class relationLabelController {
 			
 		}catch(Exception e){
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		}finally{
 			HibernateUtil.closeSession(session);
 		}

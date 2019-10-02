@@ -3,7 +3,7 @@
 "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
 <!-- Generated 2017-8-2 14:57:29 by Hibernate Tools 3.5.0.Final -->
 <hibernate-mapping>
-    <class name="annotation.model.MedicalHistory" table="MedicalHistory">
+    <class name="annotation.model.MedicalHistory" table="medicalhistory">
         <id name="id" type="java.lang.Integer">
             <column name="id" />
             <generator class="identity" />

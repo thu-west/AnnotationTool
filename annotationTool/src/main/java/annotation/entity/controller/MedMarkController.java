@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang.StringUtils;
 import org.hibernate.Query;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.sql.Insert;
@@ -168,20 +169,18 @@ public class MedMarkController {
 			session = HibernateUtil.factory.openSession();
 			
 	        //标注完成后更改状态  
-			session.beginTransaction();			
-			String hql = "update MedicalHistory m set m.status ='done' where jbxx_dengjihao = \'" + caseNumber + "\'";
-			Query query = session.createQuery(hql);
-			query.executeUpdate();
+			session.beginTransaction();
+			List<MedicalHistory> histories = session.createCriteria(MedicalHistory.class).add(Restrictions.eq("jbxxDengjihao", caseNumber)).list();
+			for(MedicalHistory mh : histories) {
+				mh.setStatus("done");
+				session.update(mh);
+			}
 			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 		System.out.println(caseNumber);
 		//return null;
@@ -226,14 +225,9 @@ public class MedMarkController {
 		} catch (Exception e) {
 			e.printStackTrace();
 			// 回滚事务
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					// 关闭session
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 
 	}
@@ -296,26 +290,20 @@ public class MedMarkController {
 	public void deleteByContent(String content) {
 		Entity anno = null;
 		Session session = null;
-		List<Integer> results = new ArrayList<Integer>();
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT id FROM Entity where content = \'" + content + "\'";
-			Query query = session.createQuery(hql);
-			results = query.list();
-			// label = (Labels)session.get(Labels.class,
-			// results.get(0).getId());
-			System.out.println(results.get(0));
+			List<Entity> entities = session.createCriteria(Entity.class).add(Restrictions.eq("content", content)).list();
 
 			anno = new Entity();
-			anno.setId(results.get(0));
+			anno.setId(entities.get(0).getId());
 			session.delete(anno);
 			session.getTransaction().commit();
 			// System.out.println(results.get(0));
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
@@ -329,68 +317,51 @@ public class MedMarkController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT pos FROM entity where pos = \'" + pos + "\'";
-			Query query = session.createQuery(hql);
-			List<Integer> results = query.list();
-
-			a = (Entity) session.get(Entity.class, results.get(0));
+			List<Entity> entities = session.createCriteria(Entity.class).add(Restrictions.eq("pos", pos)).list();
+			a = entities.get(0);
 			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 		return a;
 	}
 
 	public void deleteAll() {
-		Configuration cfg = new Configuration().configure();
-		String hql = "delete from entity where pos = '*'";
-		SessionFactory factory = cfg.buildSessionFactory();
-
 		Session session = null;
 		try {
-			session = factory.openSession();
+			session = HibernateUtil.factory.openSession();
 			// 开启事务
 			session.beginTransaction();
-
-			Query q = session.createQuery(hql);
-
+			List<Entity> entities = session.createCriteria(Entity.class).add(Restrictions.eq("pos", "*")).list();
+			for(Entity entity : entities) {
+				session.delete(entity);
+			}
 			session.getTransaction().commit();
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			// 回滚事务
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					// 关闭session
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 	}
 //判断数据库中是否已插入相同位置的相同内容
 	public Long judgeExist(JSONObject jo) {
-		Configuration cfg = new Configuration().configure();
-
-		SessionFactory factory = cfg.buildSessionFactory();
-
 		Session session = null;
 		Long count = null;
 		try {
-			session = factory.openSession();
+			session = HibernateUtil.factory.openSession();
 			// 开启事务
-			session.beginTransaction();		
-			String hql = "SELECT count(*) FROM Entity where content = \'" + jo.getString("content") + "\' and pos =\'" + jo.getString("pos") + "\' and number =\'" + jo.getString("caseNumber") + "\' ";
-			Query query = session.createQuery(hql);
-		    count = (Long) query.uniqueResult();
+			session.beginTransaction();
+			List<Entity> entities = session.createCriteria(Entity.class)
+					.add(Restrictions.eq("content", jo.getString("content")))
+					.add(Restrictions.eq("pos", jo.getString("pos")))
+					.add(Restrictions.eq("number", jo.getString("caseNumber")))
+					.list();
+		    count = (long) entities.size();
 			System.out.println("数据库中已存在"+count);
 			
 			// 提交事务
@@ -399,14 +370,9 @@ public class MedMarkController {
 		} catch (Exception e) {
 			e.printStackTrace();
 			// 回滚事务
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					// 关闭session
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 		return count;
 	}
@@ -446,14 +412,9 @@ public class MedMarkController {
 		} catch (Exception e) {
 			e.printStackTrace();
 			// 回滚事务
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
-			if (session != null) {
-				if (session.isOpen()) {
-					// 关闭session
-					session.close();
-				}
-			}
+			HibernateUtil.closeSession(session);
 		}
 	}
 

@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
@@ -92,7 +93,7 @@ public class relationController {
 		}catch(Exception e){
 			e.printStackTrace();
 			//回滚事务
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		}finally{
 			HibernateUtil.closeSession(session);
 		}
@@ -116,9 +117,10 @@ public class relationController {
 		try{
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT id FROM Relation where entity1 = \'"+jo.getString("model1")+"\'"+"and entity2 =\'"+jo.getString("model2")+"\'";
-			Query query = session.createQuery(hql);
-			results = query.list();			
+			List<Relation> relations = session.createCriteria(Relation.class).add(Restrictions.eq("entity1", jo.getString("model1"))).add(Restrictions.eq("entity2", jo.getString("model2"))).list();
+			for(Relation r : relations) {
+				results.add(r.getId());
+			}
 
 			System.out.println(results.get(0));
 			
@@ -131,7 +133,7 @@ public class relationController {
 		}catch(Exception e)
 		{
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		}finally{
 			HibernateUtil.closeSession(session);
 		}

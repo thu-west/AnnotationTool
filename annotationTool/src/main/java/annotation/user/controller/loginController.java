@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,7 +33,8 @@ public class loginController {
 			HttpServletResponse response) throws FileNotFoundException
 	{
 		request.getSession().setAttribute("sessionusername", null);
-		return "views/entity/uploadFile";
+		// return "views/entity/uploadFile";
+		return "redirect:/";
 	}
 	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -45,21 +47,19 @@ public class loginController {
 		try{
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT password FROM User where username = \'"+username+"\'";
-			Query query = session.createQuery(hql);
-
-			results = query.list();
-//			System.out.println(results.get(0));
-			
+			List<User> users = session.createCriteria(User.class).add(Restrictions.eq("username", username)).list();
+			session.getTransaction().commit();
+			for(User u : users) {
+				results.add(u.getPassword());
+			}
 		}catch(Exception e)
 		{
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		}finally{
 			HibernateUtil.closeSession(session);
 		}
-		if(results.size()==0)
-			return null;
+		if(results.size()==0) return null;
 		return results.get(0);
 	}
 	
@@ -82,7 +82,8 @@ public class loginController {
 		{
 			request.getSession().setAttribute("sessionusername", username);
 			System.out.println("login success");
-			return "views/entity/uploadFile";
+			// return "views/entity/uploadFile";
+			return "redirect:/";
 		}
 		else
 		{

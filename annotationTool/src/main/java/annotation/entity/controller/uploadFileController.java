@@ -13,7 +13,9 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import annotation.model.RelationLabel;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.query.Query;
 import org.neo4j.cypher.internal.compiler.v2_3.commands.predicates.And;
 import org.neo4j.cypher.internal.frontend.v2_3.perty.recipe.Pretty.listAppender;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.multipart.MultipartFile;
 
+import annotation.model.EntityLabel;
 import annotation.model.Entity;
 import annotation.model.MedicalHistory;
 import annotation.other.HibernateUtil;
@@ -53,6 +56,11 @@ public class uploadFileController {
 	 */
 	@RequestMapping(value = "/edit", method = RequestMethod.POST)
 	public String annotate2(HttpServletRequest request, Model model) {
+		if (request.getSession().getAttribute("sessionusername") == null) {
+			model.addAttribute("message", "please login first");
+			return "views/user/notice";
+		}
+
 		List<MedicalHistory> results = new ArrayList<MedicalHistory>();
 		String xianbingshi = null;
 		String binglihao = null;
@@ -63,30 +71,43 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "from MedicalHistory where status is null";
-			Query query = session.createQuery(hql);
-			query.setFirstResult(0).setMaxResults(1);
-			results = query.list();
+			List<MedicalHistory> histories = session.createCriteria(MedicalHistory.class).add(Restrictions.isNull("status")).setMaxResults(1).list();
+			System.out.println(histories);
 			session.getTransaction().commit();
-			Iterator it = results.iterator();
-			while (it.hasNext()) {
-				MedicalHistory mh = (MedicalHistory) it.next();
+			if (histories.size() > 0) {
+				MedicalHistory mh = histories.get(0);
 				fid = mh.getId();
-				xianbingshi = mh.getDzblXianbingshi();		
+				xianbingshi = mh.getDzblXianbingshi();
 				binglihao = (mh.getJbxxDengjihao()).toString();
 				age = mh.getJbxxNianling();
 				sex = mh.getJbxxXingbie();
-				
-				// System.out.println(xianbishi);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
-		//fid = (int) request.getSession().getAttribute("fid");
+
+		// labels
+		List<EntityLabel> entity_labels = null;
+		List<RelationLabel> relation_labels = null;
+		try {
+			session = HibernateUtil.factory.openSession();
+			session.beginTransaction();
+			entity_labels = session.createCriteria(EntityLabel.class).add(Restrictions.eq("username", "admin")).list();
+			relation_labels = session.createCriteria(RelationLabel.class).add(Restrictions.eq("username", "admin")).list();
+			session.getTransaction().commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+			HibernateUtil.rollbackSession(session);
+		} finally {
+			HibernateUtil.closeSession(session);
+		}
+
 		model.addAttribute("message", xianbingshi);
+		request.setAttribute("entity_labels", entity_labels);
+		request.setAttribute("relation_labels", relation_labels);
 		request.getSession().setAttribute("caseNumber", binglihao);
 		request.getSession().setAttribute("age", age);
 		request.getSession().setAttribute("sex", sex);
@@ -103,9 +124,13 @@ public class uploadFileController {
 	 */
 	@RequestMapping(value = "/biaozhu", method = RequestMethod.POST, produces = {"text/html;charset=UTF-8;",
 			"application/json;"})
-	public String annotateLabel(Model model, HttpServletRequest request,
-			HttpServletResponse response) throws Exception {
+	public String annotateLabel(Model model, HttpServletRequest request, HttpServletResponse response) throws Exception {
 		request.setCharacterEncoding("UTF-8");
+		if (request.getSession().getAttribute("sessionusername") == null) {
+			model.addAttribute("message", "please login first");
+			return "views/user/notice";
+		}
+
 		String message = request.getParameter("edit-message");
 		System.out.println("aaaaa "+message);
 		String caseNumber = request.getSession().getAttribute("caseNumber").toString();
@@ -116,24 +141,42 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			//
-			String hql_update ="update MedicalHistory m set m.editXianbingshi =\'"+message+"\'"+" where m.jbxxDengjihao = \'" + caseNumber + "\'";
-			Query query = session.createQuery(hql_update);
-			query.executeUpdate();
+			List<MedicalHistory> histories = session.createCriteria(MedicalHistory.class).add(Restrictions.eq("jbxxDengjihao", caseNumber)).list();
+			for(MedicalHistory mh : histories) {
+				mh.setEditXianbingshi(message);
+				session.update(mh);
+			}
 			session.getTransaction().commit();
 			//list1.add(message);
 			list1 = getMedHistory(caseNumber,message);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
 	//	list1.add(message);
+
+		// labels
+		List<EntityLabel> entity_labels = null;
+		List<RelationLabel> relation_labels = null;
+		try {
+			session = HibernateUtil.factory.openSession();
+			session.beginTransaction();
+			entity_labels = session.createCriteria(EntityLabel.class).add(Restrictions.eq("username", "admin")).list();
+			relation_labels = session.createCriteria(RelationLabel.class).add(Restrictions.eq("username", "admin")).list();
+			session.getTransaction().commit();
+		} catch (Exception e) {
+			e.printStackTrace();
+			HibernateUtil.rollbackSession(session);
+		} finally {
+			HibernateUtil.closeSession(session);
+		}
 		
 		model.addAttribute("message", list1);
-		//model.addAttribute("message", message);
+		request.setAttribute("entity_labels", entity_labels);
+		request.setAttribute("relation_labels", relation_labels);
 		return "views/entity/label";		
 	}
 	
@@ -149,9 +192,7 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql_select="from MedicalHistory s where s.jbxxDengjihao = \'" + caseNumber + "\'";
-			Query query = session.createQuery(hql_select);	
-			results = query.list();
+			results = session.createCriteria(MedicalHistory.class).add(Restrictions.eq("jbxxDengjihao", caseNumber)).list();
 			session.getTransaction().commit();
 			Iterator it = results.iterator();
 			while (it.hasNext()) {
@@ -200,7 +241,7 @@ public class uploadFileController {
 			
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
@@ -260,12 +301,14 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT color FROM EntityLabel where type = \'" + anno.getTag() + "\'";
-			Query query = session.createQuery(hql);
-			results = query.list();
+			List<EntityLabel> labels = session.createCriteria(EntityLabel.class).add(Restrictions.eq("type", anno.getTag())).list();
+			for(EntityLabel label : labels) {
+				results.add(label.getColor());
+			}
+			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
@@ -282,10 +325,7 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "from Entity e where e.username = :username e.number = :number";
-			Query query = session.createQuery(hql).setParameter("username", username).setParameter("numbber", 00001);
-
-			results = query.list();
+			results = session.createCriteria(EntityLabel.class).add(Restrictions.eq("username", username)).add(Restrictions.eq("number", 00001)).list();
 			for (Entity a : results) {
 				// jo.put("size", oi.getSize());
 				// jo.put("insize", oi.getInsize());
@@ -299,7 +339,7 @@ public class uploadFileController {
 			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
@@ -314,11 +354,7 @@ public class uploadFileController {
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "from Entity anno where anno.username = :username and anno.filename = :filename";
-			Query query = session.createQuery(hql).setParameter("username", username).setParameter("filename",
-					filename);
-
-			results = query.list();
+			results = session.createCriteria(Entity.class).add(Restrictions.eq("username", username)).add(Restrictions.eq("filename", filename)).list();
 			for (Entity a : results) {
 				// jo.put("size", oi.getSize());
 				// jo.put("insize", oi.getInsize());
@@ -327,11 +363,10 @@ public class uploadFileController {
 				// System.out.println(jo);
 				// ja.add(jo);
 			}
-
 			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}

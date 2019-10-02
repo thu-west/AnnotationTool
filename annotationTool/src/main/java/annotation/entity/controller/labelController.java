@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
+import org.hibernate.criterion.Restrictions;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,26 +65,20 @@ public class labelController {
 	public void deleteByContent(String content) {
 		EntityLabel label = null;
 		Session session = null;
-		List<Integer> results = new ArrayList<Integer>();
 		try {
 			session = HibernateUtil.factory.openSession();
 			session.beginTransaction();
-			String hql = "SELECT id FROM EntityLabel where content = \'" + content + "\'";
-			Query query = session.createQuery(hql);
-			results = query.list();
-			// label = (Labels)session.get(Labels.class,
-			// results.get(0).getId());
-			System.out.println(results.get(0));
+			List<EntityLabel> users = session.createCriteria(EntityLabel.class).add(Restrictions.eq("content", content)).list();
 
 			label = new EntityLabel();
-			label.setId(results.get(0));
+			label.setId(users.get(0).getId());
 			session.delete(label);
 			session.getTransaction().commit();
 			// System.out.println(results.get(0));
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
@@ -116,7 +111,7 @@ public class labelController {
 			session.getTransaction().commit();
 		} catch (Exception e) {
 			e.printStackTrace();
-			session.getTransaction().rollback();
+			HibernateUtil.rollbackSession(session);
 		} finally {
 			HibernateUtil.closeSession(session);
 		}
