@@ -261,8 +261,6 @@ $(document).ready(function(){
 		name: "rel"	
 	});
 	$(".confirmBtn").click(function(){
-
-		
 		var btn = document.createElement("input");
 		//alert($(".selectText").val());
 		var color = $(".selectColor").val();
@@ -372,7 +370,6 @@ $(document).ready(function(){
 			var txt=document.selection.createRange();
 			//alert(txt);
 	        txt.execCommand("ForeColor", false, background);
-	          
 		}
 		else {
 			var selection = document.getSelection();

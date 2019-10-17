@@ -24,7 +24,7 @@
 					}
 				}
 			%>
-			<li class="add addlab" style="list-style: none;"><a href="#" onclick="show_btn();"><i class="fa fa-plus-circle"></i>添加实体标签</a></li>
+			<%-- <li class="add addlab" style="list-style: none;"><a href="#" onclick="show_btn();"><i class="fa fa-plus-circle"></i>添加实体标签</a></li> --%>
 		</div>
 		
 		<div class="relationButton" >
@@ -43,7 +43,7 @@
 					}
 				}
 			%>
-			<li class="add addrel" style="list-style: none;"><a href="#" onclick="show_rel();"><i class="fa fa-plus-circle"></i>添加关系标签</a></li>
+			<%-- <li class="add addrel" style="list-style: none;"><a href="#" onclick="show_rel();"><i class="fa fa-plus-circle"></i>添加关系标签</a></li> --%>
 		</div>
 		
     </div>
@@ -54,10 +54,8 @@
 			<textarea id="edit-message" class="edit-message" name="edit-message" >${message}</textarea>
 			</form>
 			<input type="button" id="button-submitedit" class="btn btn-default button-submitedit"  value = "确认" style="margin-top:250px;margin-left:90%;" ></input>
-		
-	      
-  </div>
-  </div>
+		</div>
+	</div>
     
     <div id="right">		
 	    <div class="search">

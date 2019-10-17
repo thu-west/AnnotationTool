@@ -6,9 +6,9 @@
 <link href="css/index.css" rel="stylesheet" type="text/css">
 <link href="css/text.css" rel="stylesheet" type="text/css">
 <link href="css/smartMenu.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="css/jquery-labelauty.css">
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript" src="js/tether.min.js"></script>
 <script type="text/javascript" src="js/bootstrap.min.js"></script>
-<script type="text/javascript" src="js/jquery-accordion-menu.js"></script>
-<script src="js/jquery-smartMenu.js"></script>
-<script type="text/javascript" src="js/biaozhu.js"></script>
+<script type="text/javascript" src="js/jquery-accordion-menu.js" ></script>
+<script type="text/javascript" src="js/jquery.form.js"></script>

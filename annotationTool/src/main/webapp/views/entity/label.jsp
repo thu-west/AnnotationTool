@@ -147,8 +147,7 @@
 							UCG（多选）：
 							<br>
 							<ul>
-								<li id="box"><input type="checkbox" name="UCG" value="1" data-labelauty="节段性室壁运动异常">
-								</li>
+								<li id="box"><input type="checkbox" name="UCG" value="1" data-labelauty="节段性室壁运动异常"></li>
 								<li id="box"><input type="checkbox" name="UCG" value="2" data-labelauty="室壁瘤"></li>
 								<li id="box"><input type="checkbox" name="UCG" value="3" data-labelauty="乳头肌功能失调"></li>
 								<li id="box"><input type="checkbox" name="UCG" value="4" data-labelauty="舒张功能减低"></li>
@@ -228,7 +227,6 @@
 						</div>
 					</div>
 					<div id="middle-button" class="middle-button">
-
 						<input id="label_submit" type="button" class="btn btn-default label-submit" value="提交"></input>
 						<input id="data_next" type="button" class="btn btn-default data-next" value="下一条"></input>
 					</div>
@@ -297,8 +295,7 @@
 		</div>
 	</div>
 	<div>
-		<div class="modal fade" id="relModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
-			aria-hidden="true">
+		<div class="modal fade" id="relModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -323,19 +320,8 @@
 </body>
 
 <script type="text/javascript">
-	jQuery(document).ready(function () {
-		jQuery("#jquery-accordion-menu").jqueryAccordionMenu();
-
-	});
-
 	$(function () {
 		var flag1 = 0;
-		//顶部导航切换
-		$("#demo-list li").click(function () {
-			$("#demo-list li.active").removeClass("active")
-			$(this).addClass("active");
-		})
-
 		$(".anno").click(function () {
 			if (flag1 == 0) {
 				//$("#oprate").show(500, show_operate());
@@ -365,5 +351,7 @@
 		$(':input').labelauty();
 	});
 </script>
+<script src="js/jquery-smartMenu.js"></script>
+<script type="text/javascript" src="js/biaozhu.js"></script>
 
 </html>

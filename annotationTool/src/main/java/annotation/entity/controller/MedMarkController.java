@@ -150,7 +150,7 @@ public class MedMarkController {
 		String caseNumber = request.getSession().getAttribute("caseNumber").toString();
 		int age = (int) request.getSession().getAttribute("age");
 		String sex = (String) request.getSession().getAttribute("sex");
-				
+		
         String[] values = request.getParameterValues("history");
         String history = StringUtils.join(values, ";");
         String pain_level = request.getParameter("pain_level");
