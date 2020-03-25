@@ -63,6 +63,36 @@ router.post('/delete_dataset_task_tag', async ctx => {
     };
 });
 
+// task_id, name
+router.post('/add_dataset_task_relation_tag', async ctx => {
+    let task = await Task.findById(ctx.request.body.task_id);
+    assert(task, '参数非法');
+    let name = ctx.request.body.name;
+    assert(name, '关系标签必须有名称');
+
+    assert(!_.some(task.relation_tags, r => r === name), '关系标签已经存在');
+
+    task.relation_tags.push(name);
+    task.markModified('relation_tags');
+    await task.save();
+    ctx.body = {
+        success: true
+    };
+});
+
+// task_id, name
+router.post('/delete_dataset_task_relation_tag', async ctx => {
+    let task = await Task.findById(ctx.request.body.task_id);
+    assert(task, '参数非法');
+    let name = ctx.request.body.name;
+    assert(name, '参数非法');
+    task.relation_tags = task.relation_tags.filter(r => r !== name);
+    await task.save();
+    ctx.body = {
+        success: true
+    };
+});
+
 // task_id
 router.get('/get_next_task_item', async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
@@ -96,7 +126,7 @@ router.get('/get_next_task_item', async ctx => {
         data: task_info
     };
 });
-// task_id, dataset_item_id, tags
+// task_id, dataset_item_id, tags, relation_tags
 router.post('/set_task_item_tags', async ctx => {
     let task = await Task.findById(ctx.request.body.task_id).populate('dataset');
     assert(task, '参数错误');
@@ -115,7 +145,11 @@ router.post('/set_task_item_tags', async ctx => {
         sum_length += tag.length;
     }
     assert(sum_length === dataset_item.content.length, '总长度不正确');
-    await TaskItem.findOneAndUpdate({task, dataset_item}, {task, dataset_item, tags, by_human: true}, {upsert: true});
+
+    let relation_tags = ctx.request.body.relation_tags || [];
+    assert(_.isArray(relation_tags), '参数错误');
+
+    await TaskItem.findOneAndUpdate({task, dataset_item}, {task, dataset_item, tags, relation_tags, by_human: true}, {upsert: true});
     ctx.body = {
         success: true
     };

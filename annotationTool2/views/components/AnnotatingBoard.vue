@@ -1,7 +1,7 @@
 <template>
     <div>
         <Card dis-hover :shadow="false" :padding="6">
-            <p>实体标注说明：先用鼠标选择下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
+            <p>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
             <Row>
                 <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
                 <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
@@ -10,10 +10,10 @@
             </Row>
         </Card>
         <Card dis-hover :shadow="false" :padding="6">
-            <p>关系标注说明：TODO</p>
+            <p>关系标注说明：请先选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
             <Row>
-                <span class="btn" v-if="relations && relations.length == 0">暂无关系标签</span>
-                <Button class="btn" v-for="r in relations" :key="r" @click="setRelation(r)">{{r}}</Button>
+                <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
+                <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)">{{r}}</Button>
                 <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
                 <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
             </Row>
@@ -21,27 +21,53 @@
                 <List border>
                     <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
                     <ListItem v-for="(r, idx) in relationships" :key="idx">
-                        <span class="rbox">{{ r.entity1 }}</span>
+                        <span class="rbox">{{ r.entity1.text }}</span>
                         <span class="rbox">{{ r.relation }}</span>
-                        <span class="rbox">{{ r.entity2 }}</span>
-                        <span class="rbox">{{ r.support }}</span>
+                        <span class="rbox">{{ r.entity2.text }}</span>
+                        <span class="rbox">{{ r.support_text }}</span>
+                        <span>
+                            <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除次关系</Button>
+                        </span>
                     </ListItem>
                     <ListItem v-if="relationship_running">
                         <span class="rbox" :class="{rrunning: relationship_running.running === 'entity1', rplaceholder: !relationship_running.entity1 }">
-                            {{ relationship_running.entity1 }}
+                            {{ relationship_running.entity1 ? relationship_running.entity1.text : '实体1' }}
                         </span>
                         <span class="rbox">
                             {{ relationship_running.relation }}
                         </span>
-                        <span class="rbox" :class="{rrunning: relationship_running.running === 'entity2', rplaceholder: !relationship_running.entity2}">
-                            {{ relationship_running.entity2 }}
+                        <span class="rbox" :class="{rrunning: relationship_running.running === 'entity2', rplaceholder: !relationship_running.entity2 }">
+                            {{ relationship_running.entity2 ? relationship_running.entity2.text : '实体2' }}
                         </span>
-                        <span class="rbox" :class="{rrunning: relationship_running.running === 'support', rplaceholder: !relationship_running.support}">
-                            {{ relationship_running.support }}
+                        <span class="rbox" :class="{rrunning: relationship_running.running === 'support_text', rplaceholder: !relationship_running.support_text}">
+                            {{ relationship_running.support_text ? relationship_running.support_text : '关系支持文本' }}
                         </span>
-                        <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
+                        <span v-if="relationship_running.running === 'support_text'">
+                            <a href="#" @click.prevent="addRelation()">
+                                添加无支持文本的实体关系
+                            </a>
+                            |
+                        </span>
+                        <span>
+                            <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
+                        </span>
                     </ListItem>
                 </List>
+            </Row>
+            <Row v-if="relationship_running"> <!-- 提示文本 -->
+                当前正在进行的操作：
+                <span v-if="relationship_running.running === 'entity1'">
+                    请点选实体1
+                </span>
+                <span v-else-if="relationship_running.running === 'entity2'">
+                    请点选实体2
+                </span>
+                <span v-else-if="relationship_running.running === 'support_text'">
+                    请勾选支持此关系的文本。也可添加无支持文本的实体关系
+                </span>
+                <span v-else>
+                    未知操作
+                </span>
             </Row>
         </Card>
         <br/>
@@ -99,7 +125,7 @@
             title="删除关系标签"
             :footer-hide="true">
             <p>点击下面的按钮选择需要被删除的关系标签</p>
-            <Button class="btn" v-for="r in relations" :key="r" @click="removeRelation(r)">{{r}}</Button>
+            <Button class="btn" v-for="r in relation_tags" :key="r" @click="removeRelationTag(r)">{{r}}</Button>
         </Modal>
     </div>
 </template>
@@ -108,11 +134,14 @@
 import _ from 'lodash';
 // import color from 'color';
 
-// emit: addtag({color, name, symbol}), deltag(symbol), submit(otags) // [{length, symbol}]
+// emit: addtag({color, name, symbol}), deltag(symbol)
+// emit: addrelationtag(name), delrelationtag(name)
+// submit({otags, orelationships}) // [{length, symbol}]
 export default {
     name: 'AnnotatingBoard',
     props: {
         tags: Array,
+        relation_tags: Array,
         text: String,
         intags: Array // {length, symbol}
     },
@@ -142,7 +171,6 @@ export default {
                 }
             },
 
-            relations: [],
             add_relation_modal: false,
             del_relation_modal: false,
             relation_form: {
@@ -213,19 +241,17 @@ export default {
                         this.$Message.error(`与'${re}'关系标签相同`);
                         return;
                     }
-                    // this.$emit('addtag', {color: this.tag_form.color, name: this.tag_form.name, symbol: this.tag_form.symbol});
-                    this.relations = _.concat(this.relations, this.relation_form.name);
+                    this.$emit('addrelationtag', this.relation_form.name);
                     this.add_relation_modal = false;
                 }
             });
         },
-        removeRelation (re) {
+        removeRelationTag (name) {
             this.$Modal.confirm({
                 title: '确认关系标签',
-                content: `是否删除'${re}'实体标签？`,
+                content: `是否删除'${name}'关系标签？`,
                 onOk: () => {
-                    // this.$emit('deltag', tag.symbol);
-                    this.relations = this.relations.filter(r => r !== re);
+                    this.$emit('delrelationtag', name);
                 }
             });
         },
@@ -326,6 +352,9 @@ export default {
             } else {
                 this.otags = merged_otags;
             }
+
+            this.relationships = [];
+            this.relationship_running = null;
         },
         setTag (tag) {
             if (!window.getSelection) {
@@ -387,17 +416,21 @@ export default {
                 if (tag.symbol === 'O') {
                     this.$Message.error('请选择一个实体');
                 } else {
-                    this.relationship_running[this.relationship_running.running] = this.text.slice(tag.start, tag.end);
+                    this.relationship_running[this.relationship_running.running] = {
+                        start_pos: tag.start,
+                        end_pos: tag.end,
+                        text: this.text.slice(tag.start, tag.end)
+                    };
                     if (this.relationship_running.running === 'entity1') {
                         this.relationship_running.running = 'entity2';
                     } else {
-                        this.relationship_running.running = 'support';
+                        this.relationship_running.running = 'support_text';
                     }
                 }
             }
         },
         mouseup () {
-            if (!this.relationship_running || this.relationship_running.running !== 'support') return;
+            if (!this.relationship_running || this.relationship_running.running !== 'support_text') return;
 
             if (!window.getSelection) {
                 alert('请使用谷歌浏览器火狐浏览器进行操作。');
@@ -429,9 +462,19 @@ export default {
             let otags = _.clone(this.otags);
             let start = rangeObj.startOffset + otags[start_idx].start;
             let end = rangeObj.endOffset + otags[end_idx].start;
-            this.relationship_running.support = this.text.slice(start, end);
+            this.relationship_running.support_text = this.text.slice(start, end);
             this.relationships = _.concat(this.relationships, [this.relationship_running]);
             this.relationship_running = null;
+            this.$Message.success('添加关系成功');
+        },
+        addRelation () { // 添加无支持文本的关系
+            if (!this.relationship_running) return;
+            this.relationships = _.concat(this.relationships, [this.relationship_running]);
+            this.relationship_running = null;
+            this.$Message.success('添加关系成功');
+        },
+        removeRelationship (idx) {
+            this.relationships.splice(idx, 1);
         },
         dbclick (idx) {
             let otags = _.clone(this.otags);
@@ -451,7 +494,7 @@ export default {
                     symbol: i.symbol
                 };
             });
-            this.$emit('submit', otags);
+            this.$emit('submit', {otags, orelationships: _.clone(this.relationships)});
         }
     }
 };
@@ -472,7 +515,8 @@ export default {
 }
 .rplaceholder {
     min-width: 100px;
-    height: 1em;
+    text-align: center;
+    color: #9c9c9c;
 }
 .rrunning {
     border: 1px solid red;

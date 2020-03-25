@@ -14,7 +14,14 @@
             </Switch>
         </Row>
         <br/>
-        <AnnotatingBoard :tags="task.tags" :text="task_item.content" :intags="show_machine ? task_item.tags : null" @addtag="addtag" @deltag="deltag" @submit="submit"/>
+        <div>
+            <AnnotatingBoard
+                :tags="task.tags"
+                :relation_tags="task.relation_tags"
+                :text="task_item.content"
+                :intags="show_machine ? task_item.tags : null"
+                @addtag="addtag" @deltag="deltag" @addrelationtag="addrelationtag" @delrelationtag="delrelationtag" @submit="submit"/>
+        </div>
     </div>
 </template>
 
@@ -59,8 +66,16 @@ export default {
             this.task = data;
         },
         async updateTaskItem () {
-            let { data } = await http.get('get_next_task_item', {task_id: this.$route.params.task_id});
-            this.task_item = data;
+            this.$Spin.show();
+            try {
+                let { data } = await http.get('get_next_task_item', {task_id: this.$route.params.task_id});
+                this.task_item = data;
+                setTimeout(() => {
+                    this.$Spin.hide();
+                }, 1000);
+            } catch (e) {
+                this.$Spin.hide();
+            }
         },
         async addtag (tag) {
             await http.post('add_dataset_task_tag', {}, _.assign(_.clone(tag), {task_id: this.$route.params.task_id}));
@@ -72,14 +87,27 @@ export default {
             this.$Message.success('删除成功');
             await this.updateTask();
         },
-        async submit (otags) {
+        async addrelationtag (name) {
+            await http.post('add_dataset_task_relation_tag', {}, {task_id: this.$route.params.task_id, name});
+            this.$Message.success('添加成功');
+            await this.updateTask();
+        },
+        async delrelationtag (name) {
+            await http.post('delete_dataset_task_relation_tag', {}, {task_id: this.$route.params.task_id, name});
+            this.$Message.success('删除成功');
+            await this.updateTask();
+        },
+        async submit ({otags, orelationships}) {
             await http.post('set_task_item_tags', {}, {
                 task_id: this.$route.params.task_id,
                 dataset_item_id: this.task_item.dataset_item,
-                tags: otags
+                tags: otags,
+                relation_tags: orelationships
             });
             this.$Message.success('提交标注成功');
-            await this.updateTaskItem();
+            setTimeout(() => {
+                this.updateTaskItem();
+            }, 1000);
         }
     }
 };

@@ -33,14 +33,16 @@ let taskItemSchema = new mongoose.Schema({
                     text: String
                 },
                 relation: String,
-                entity1: {
+                entity2: {
                     start_pos: Number,
                     end_pos: Number,
                     text: String
                 },
                 support_text: String // 可选
             }
-        ]
+        ],
+        required: true,
+        default: []
     },
 
     confidence: { // 信心
