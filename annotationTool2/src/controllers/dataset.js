@@ -81,7 +81,8 @@ router.post('/insert_dataset', body({multipart: true}), async ctx => {
     let datafile = ctx.request.files.datafile;
     assert(datafile, '没有找到上传的文件');
     let fileid = uuidv1();
-    await mzfs.rename(datafile.path, path.join(config.FILE_PATH, fileid));
+    // await mzfs.rename(datafile.path, path.join(config.FILE_PATH, fileid));
+    await mzfs.copyFile(datafile.path, path.join(config.FILE_PATH, fileid));
     let analysis = await utils.datafileAnalysis(dataset, fileid);
     ctx.body = {
         success: true,
