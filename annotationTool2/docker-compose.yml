@@ -1,0 +1,21 @@
+version: '3'
+services:
+  db:
+    image: mongo
+    volumes:
+      - ./db:/data/db
+    restart: always
+  web:
+    image: node:12.14
+    volumes:
+      - ./:/root/web/
+    depends_on:
+      - db
+    links:
+      - db
+    working_dir: /root/web/
+    command: node src/app.js
+    environment:
+      - MONGO_HOST=db      
+    ports:
+      - "8800:8800"
