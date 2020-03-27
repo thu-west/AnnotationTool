@@ -26,7 +26,7 @@
                         <span class="rbox">{{ r.entity2.text }}</span>
                         <span class="rbox">{{ r.support_text }}</span>
                         <span>
-                            <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除次关系</Button>
+                            <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
                         </span>
                     </ListItem>
                     <ListItem v-if="relationship_running">
@@ -77,8 +77,10 @@
             </p>
         </Row>
         <Row style="margin-top: 5px">
-            <Button @click="handleSubmit">提交标注结果</Button>
+            <Button @click="show_confirm_modal = true">提交标注结果</Button>
         </Row>
+
+        <!-- -->
         <Modal
             v-model="add_tag_modal"
             title="添加实体标签"
@@ -99,6 +101,7 @@
                 </FormItem>
             </Form>
         </Modal>
+        <!-- -->
         <Modal
             v-model="del_tag_modal"
             title="删除实体标签"
@@ -107,6 +110,7 @@
             <Button class="btn" v-for="t in tags" :key="t._id" @click="removeTag(t)">{{t.name}}</Button>
         </Modal>
 
+        <!-- -->
         <Modal
             v-model="add_relation_modal"
             title="添加关系标签"
@@ -120,12 +124,60 @@
                 </FormItem>
             </Form>
         </Modal>
+        <!-- -->
         <Modal
             v-model="del_relation_modal"
             title="删除关系标签"
             :footer-hide="true">
             <p>点击下面的按钮选择需要被删除的关系标签</p>
             <Button class="btn" v-for="r in relation_tags" :key="r" @click="removeRelationTag(r)">{{r}}</Button>
+        </Modal>
+
+        <!-- -->
+        <Modal
+            v-model="show_confirm_modal"
+            title="确认标注"
+            @on-ok="handleSubmit"
+            ok-text="提交标注"
+            cancel-text="取消"
+            :width="60">
+            <Divider size="small">实体标注：</Divider>
+            <Row v-for="t in tags" :key="t._id">
+                <Button class="btn" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
+                <span v-if="otags.filter(ot => ot.symbol == t.symbol).length == 0">
+                    : 无
+                </span>
+                <span v-else>
+                    :
+                    <span v-for="(ot, idx) in otags.filter(ot => ot.symbol == t.symbol)" :key="ot.start">
+                        {{ idx == 0 ? text.slice(ot.start, ot.end) : ' | ' + text.slice(ot.start, ot.end) }}
+                    </span>
+                </span>
+            </Row>
+            <Divider size="small">关系标注：</Divider>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>实体1</th>
+                        <th>关系</th>
+                        <th>实体2</th>
+                        <th>支持文本</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="relationships.length == 0">
+                        <td colspan="4">
+                            无关系标注
+                        </td>
+                    </tr>
+                    <tr v-for="(r, idx) in relationships" :key="idx">
+                        <td>{{ r.entity1.text }}</td>
+                        <td>{{ r.relation }}</td>
+                        <td>{{ r.entity2.text }}</td>
+                        <td>{{ r.support_text }}</td>
+                    </tr>
+                </tbody>
+            </table>
         </Modal>
     </div>
 </template>
@@ -184,7 +236,9 @@ export default {
                 }
             },
             relationships: [],
-            relationship_running: null // {running: string, entity1, relation, entity2, support}
+            relationship_running: null, // {running: string, entity1, relation, entity2, support}
+
+            show_confirm_modal: false
         };
     },
     created () {
@@ -521,5 +575,17 @@ export default {
 .rrunning {
     border: 1px solid red;
     border-radius: 2px;
+}
+.table {
+    width: 100%;
+}
+table.table, table.table th, table.table td {
+    border: 1px solid black;
+}
+table.table th, table.table td {
+    text-align: center;
+}
+table.table {
+    border-collapse: collapse;
 }
 </style>

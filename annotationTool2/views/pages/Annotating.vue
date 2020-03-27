@@ -107,7 +107,7 @@ export default {
             this.$Message.success('提交标注成功');
             setTimeout(() => {
                 this.updateTaskItem();
-            }, 1000);
+            }, 1000); // 加一步确认
         }
     }
 };
