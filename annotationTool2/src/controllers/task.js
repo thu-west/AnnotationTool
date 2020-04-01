@@ -50,6 +50,27 @@ router.post('/add_dataset_task_tag', async ctx => {
     };
 });
 
+// task_id, symbol, name, color
+router.post('/modify_dataset_task_tag', async ctx => {
+    let task = await Task.findById(ctx.request.body.task_id);
+    assert(task, '参数非法');
+    let name = ctx.request.body.name;
+    let symbol = ctx.request.body.symbol;
+    let color = ctx.request.body.color;
+    assert(name, '实体必须有名称');
+    assert(symbol, '实体必须有标签');
+    assert(color, '实体必须有对应的颜色');
+
+    let t = _.find(task.tags, t => t.symbol === symbol);
+    t.name = name;
+    t.color = color;
+    task.markModified('tags');
+    await task.save();
+    ctx.body = {
+        success: true
+    };
+});
+
 // task_id, symbol
 router.post('/delete_dataset_task_tag', async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
@@ -63,30 +84,35 @@ router.post('/delete_dataset_task_tag', async ctx => {
     };
 });
 
-// task_id, name
-router.post('/add_dataset_task_relation_tag', async ctx => {
+// task_id, symbols
+router.post('/reorder_dataset_task_tag', async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
-    let name = ctx.request.body.name;
-    assert(name, '关系标签必须有名称');
+    let symbols = ctx.request.body.symbols;
+    assert(symbols, '参数非法');
+    assert(_.isArray(symbols));
 
-    assert(!_.some(task.relation_tags, r => r === name), '关系标签已经存在');
+    let tags = [];
+    for (let sym of symbols) {
+        let tag = _.find(task.tags, t => t.symbol === sym);
+        assert(tag);
+        tags.push(tag);
+    }
+    task.tags = tags;
 
-    task.relation_tags.push(name);
-    task.markModified('relation_tags');
     await task.save();
     ctx.body = {
         success: true
     };
 });
 
-// task_id, name
-router.post('/delete_dataset_task_relation_tag', async ctx => {
+// task_id, names
+router.post('/set_dataset_task_relation_tag', async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
-    let name = ctx.request.body.name;
-    assert(name, '参数非法');
-    task.relation_tags = task.relation_tags.filter(r => r !== name);
+    let names = ctx.request.body.names;
+    assert(_.isArray(names), '参数非法');
+    task.relation_tags = names;
     await task.save();
     ctx.body = {
         success: true

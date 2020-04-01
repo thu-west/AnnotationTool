@@ -5,8 +5,9 @@
             <Row>
                 <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
                 <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
-                <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加实体标签</Button>
+                <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
                 <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
+                <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
             </Row>
         </Card>
         <Card dis-hover :shadow="false" :padding="6">
@@ -16,6 +17,7 @@
                 <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)">{{r}}</Button>
                 <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
                 <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
+                <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
             </Row>
             <Row>
                 <List border>
@@ -85,6 +87,7 @@
             v-model="add_tag_modal"
             title="添加实体标签"
             :footer-hide="true">
+            <p>注：如果”实体符号“和已经存在的实体标签的符号相同，那么会修改已经存在的标签名称和颜色，否则则会添加实体标签。</p>
             <Form ref="tagForm" :model="tag_form" :rules="tag_rules" :label-width="80">
                 <FormItem prop="color" label="颜色">
                     <!-- <Input type="color" v-model="tag_form.color"/> -->
@@ -109,6 +112,19 @@
             <p>点击下面的按钮选择需要被删除的实体标签</p>
             <Button class="btn" v-for="t in tags" :key="t._id" @click="removeTag(t)">{{t.name}}</Button>
         </Modal>
+        <!-- -->
+        <Modal
+            v-model="reorder_tag_modal"
+            title="重新排列实体标签"
+            :footer-hide="true">
+            <List border>
+                <ListItem v-for="(t, idx) in tags" :key="t._id">
+                    <Button type="warning" size="small" class="marginh" @click="tagUp(idx)" :disabled="idx == 0" ><Icon type="md-arrow-round-up" /></Button>
+                    <Button type="warning" size="small" class="marginh" @click="tagDown(idx)" :disabled="idx == tags.length - 1" ><Icon type="md-arrow-round-down" /></Button>
+                    {{t.name}}
+                </ListItem>
+            </List>
+        </Modal>
 
         <!-- -->
         <Modal
@@ -131,6 +147,19 @@
             :footer-hide="true">
             <p>点击下面的按钮选择需要被删除的关系标签</p>
             <Button class="btn" v-for="r in relation_tags" :key="r" @click="removeRelationTag(r)">{{r}}</Button>
+        </Modal>
+        <!-- -->
+        <Modal
+            v-model="reorder_relation_modal"
+            title="重新排列关系标签"
+            :footer-hide="true">
+            <List border>
+                <ListItem v-for="(r, idx) in relation_tags" :key="r">
+                    <Button type="warning" size="small" class="marginh" @click="relationTagUp(idx)" :disabled="idx == 0" ><Icon type="md-arrow-round-up" /></Button>
+                    <Button type="warning" size="small" class="marginh" @click="relationTagDown(idx)" :disabled="idx == relation_tags.length - 1" ><Icon type="md-arrow-round-down" /></Button>
+                    {{r}}
+                </ListItem>
+            </List>
         </Modal>
 
         <!-- -->
@@ -186,8 +215,8 @@
 import _ from 'lodash';
 // import color from 'color';
 
-// emit: addtag({color, name, symbol}), deltag(symbol)
-// emit: addrelationtag(name), delrelationtag(name)
+// emit: addtag({color, name, symbol})， edittag({color, name, symbol}), deltag(symbol), reordertag(symbols)
+// emit: setrelationtags(names)
 // submit({otags, orelationships}) // [{length, symbol}]
 export default {
     name: 'AnnotatingBoard',
@@ -203,6 +232,7 @@ export default {
 
             add_tag_modal: false,
             del_tag_modal: false,
+            reorder_tag_modal: false,
             tag_form: {
                 color: '#fff'
             },
@@ -225,6 +255,7 @@ export default {
 
             add_relation_modal: false,
             del_relation_modal: false,
+            reorder_relation_modal: false,
             relation_form: {
                 name: ''
             },
@@ -242,6 +273,7 @@ export default {
         };
     },
     created () {
+        this.clearAll();
         this.init();
     },
     watch: {
@@ -249,6 +281,7 @@ export default {
             this.init();
         },
         text () {
+            this.clearAll();
             this.init();
         },
         intags () {
@@ -269,11 +302,11 @@ export default {
             this.$refs[name].validate((valid) => {
                 if (valid) {
                     let otag = _.find(this.tags, i => i.symbol === this.tag_form.symbol);
-                    if (otag) {
-                        this.$Message.error(`与'${otag.name}'实体标签具有相同的符号`);
-                        return;
-                    }
-                    this.$emit('addtag', {color: this.tag_form.color, name: this.tag_form.name, symbol: this.tag_form.symbol});
+                    // if (otag) {
+                    //     this.$Message.error(`与'${otag.name}'实体标签具有相同的符号`);
+                    //     return;
+                    // }
+                    this.$emit(otag ? 'edittag' : 'addtag', {color: this.tag_form.color, name: this.tag_form.name, symbol: this.tag_form.symbol});
                     this.add_tag_modal = false;
                 }
             });
@@ -287,6 +320,20 @@ export default {
                 }
             });
         },
+        tagUp (idx) {
+            let a = this.tags[idx];
+            let b = this.tags[idx - 1];
+            this.$set(this.tags, idx, b);
+            this.$set(this.tags, idx - 1, a);
+            this.$emit('reordertag', this.tags.map(t => t.symbol));
+        },
+        tagDown (idx) {
+            let a = this.tags[idx];
+            let b = this.tags[idx + 1];
+            this.$set(this.tags, idx, b);
+            this.$set(this.tags, idx + 1, a);
+            this.$emit('reordertag', this.tags.map(t => t.symbol));
+        },
         handleRelationSubmit (name) {
             this.$refs[name].validate((valid) => {
                 if (valid) {
@@ -295,7 +342,9 @@ export default {
                         this.$Message.error(`与'${re}'关系标签相同`);
                         return;
                     }
-                    this.$emit('addrelationtag', this.relation_form.name);
+                    let relation_tags = _.clone(this.relation_tags);
+                    relation_tags.push(this.relation_form.name);
+                    this.$emit('setrelationtags', relation_tags);
                     this.add_relation_modal = false;
                 }
             });
@@ -305,9 +354,24 @@ export default {
                 title: '确认关系标签',
                 content: `是否删除'${name}'关系标签？`,
                 onOk: () => {
-                    this.$emit('delrelationtag', name);
+                    let relation_tags = this.relation_tags.filter(r => r !== name);
+                    this.$emit('setrelationtags', relation_tags);
                 }
             });
+        },
+        relationTagUp (idx) {
+            let a = this.relation_tags[idx];
+            let b = this.relation_tags[idx - 1];
+            this.$set(this.relation_tags, idx, b);
+            this.$set(this.relation_tags, idx - 1, a);
+            this.$emit('setrelationtags', this.relation_tags);
+        },
+        relationTagDown (idx) {
+            let a = this.relation_tags[idx];
+            let b = this.relation_tags[idx + 1];
+            this.$set(this.relation_tags, idx, b);
+            this.$set(this.relation_tags, idx + 1, a);
+            this.$emit('setrelationtags', this.relation_tags);
         },
         // 将相邻的符号相同的段进行合并
         mergeTags (otags) {
@@ -330,15 +394,23 @@ export default {
             }
             return merged_otags;
         },
+        clearAll () {
+            this.otags = [];
+
+            this.relationships = [];
+            this.relationship_running = null;
+        },
         init () {
+            // =================== otags =========================
             let otags = [];
             let error_flag = false;
 
             if (!this.tags || !this.text) {
-                this.otags = [];
-                return;
+                otags = [];
             } else {
-                if (!this.intags) {
+                if (this.otags && this.otags.length > 0) {
+                    otags = this.otags;
+                } else if (!this.intags) {
                     otags = [{
                         start: 0,
                         end: this.text.length,
@@ -367,6 +439,7 @@ export default {
                 }
             }
 
+            // 整理
             for (let i = 0; i < otags.length; i++) {
                 if (!_.some(this.tags, t => t.symbol === otags[i].symbol)) {
                     otags[i].symbol = 'O';
@@ -406,9 +479,7 @@ export default {
             } else {
                 this.otags = merged_otags;
             }
-
-            this.relationships = [];
-            this.relationship_running = null;
+            // =================== otags =========================
         },
         setTag (tag) {
             if (!window.getSelection) {
@@ -587,5 +658,8 @@ table.table th, table.table td {
 }
 table.table {
     border-collapse: collapse;
+}
+.marginh {
+    margin-right: 10px;
 }
 </style>

@@ -20,7 +20,7 @@
                 :relation_tags="task.relation_tags"
                 :text="task_item.content"
                 :intags="show_machine ? task_item.tags : null"
-                @addtag="addtag" @deltag="deltag" @addrelationtag="addrelationtag" @delrelationtag="delrelationtag" @submit="submit"/>
+                @addtag="addtag" @edittag="edittag" @deltag="deltag" @reordertag="reordertag" @setrelationtags="setrelationtags" @submit="submit"/>
         </div>
     </div>
 </template>
@@ -82,19 +82,22 @@ export default {
             this.$Message.success('添加成功');
             await this.updateTask();
         },
+        async edittag (tag) {
+            await http.post('modify_dataset_task_tag', {}, _.assign(_.clone(tag), {task_id: this.$route.params.task_id}));
+            this.$Message.success('修改成功');
+            await this.updateTask();
+        },
         async deltag (symbol) {
             await http.post('delete_dataset_task_tag', {}, _.assign({symbol}, {task_id: this.$route.params.task_id}));
             this.$Message.success('删除成功');
             await this.updateTask();
         },
-        async addrelationtag (name) {
-            await http.post('add_dataset_task_relation_tag', {}, {task_id: this.$route.params.task_id, name});
-            this.$Message.success('添加成功');
-            await this.updateTask();
+        async reordertag (symbols) {
+            await http.post('reorder_dataset_task_tag', {}, _.assign({symbols}, {task_id: this.$route.params.task_id}));
         },
-        async delrelationtag (name) {
-            await http.post('delete_dataset_task_relation_tag', {}, {task_id: this.$route.params.task_id, name});
-            this.$Message.success('删除成功');
+        async setrelationtags (names) {
+            await http.post('set_dataset_task_relation_tag', {}, {task_id: this.$route.params.task_id, names});
+            this.$Message.success('修改成功');
             await this.updateTask();
         },
         async submit ({otags, orelationships}) {
