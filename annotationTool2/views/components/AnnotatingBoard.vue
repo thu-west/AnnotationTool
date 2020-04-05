@@ -4,7 +4,14 @@
             <p>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
             <Row>
                 <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
-                <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
+
+                <!-- <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button> -->
+                <Divider orientation="left" size="small">慢性期</Divider>
+                <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                <Divider orientation="left" size="small">急性期</Divider>
+                <Button class="btn" v-for="t in tags.slice(13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+
+                <Divider orientation="left" size="small">操作</Divider>
                 <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
                 <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
                 <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
