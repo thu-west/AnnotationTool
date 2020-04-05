@@ -9,7 +9,9 @@
                 <Divider orientation="left" size="small">慢性期</Divider>
                 <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
                 <Divider orientation="left" size="small">急性期</Divider>
-                <Button class="btn" v-for="t in tags.slice(13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                <Divider orientation="left" size="small">其他</Divider>
+                <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
 
                 <Divider orientation="left" size="small">操作</Divider>
                 <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
