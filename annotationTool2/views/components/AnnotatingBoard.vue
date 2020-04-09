@@ -16,7 +16,7 @@
                         <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
 
                         <Divider orientation="left" size="small">操作</Divider>
-                        <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="randomColor(); add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
                         <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
                         <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
                     </Row>
@@ -99,7 +99,7 @@
         <!-- -->
         <Modal
             v-model="add_tag_modal"
-            title="添加实体标签"
+            title="添加或修改实体标签"
             :footer-hide="true">
             <p>注：如果”实体符号“和已经存在的实体标签的符号相同，那么会修改已经存在的标签名称和颜色，否则则会添加实体标签。</p>
             <Form ref="tagForm" :model="tag_form" :rules="tag_rules" :label-width="80">
@@ -227,7 +227,7 @@
 
 <script>
 import _ from 'lodash';
-// import color from 'color';
+import color from 'color';
 
 // emit: addtag({color, name, symbol})， edittag({color, name, symbol}), deltag(symbol), reordertag(symbols)
 // emit: setrelationtags(names)
@@ -308,6 +308,9 @@ export default {
         colorize (c) {
             // return color(c).alpha(0.7).string();
             return c;
+        },
+        randomColor () {
+            this.tag_form.color = color.hsv(Math.floor(Math.random() * 360), 100, 100).string();
         },
         findColor (symbol) {
             let tag = _.find(this.tags, t => t.symbol === symbol);
