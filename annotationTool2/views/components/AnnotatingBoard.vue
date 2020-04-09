@@ -1,95 +1,100 @@
 <template>
     <div>
-        <Card dis-hover :shadow="false" :padding="6">
-            <p>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
-            <Row>
-                <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
+        <Split v-model="split" class="split-box">
+            <div slot="left" class="split-item">
+                <Card dis-hover :shadow="false" :padding="6">
+                    <p>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
+                    <Row>
+                        <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
 
-                <!-- <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button> -->
-                <Divider orientation="left" size="small">慢性期</Divider>
-                <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                <Divider orientation="left" size="small">急性期</Divider>
-                <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                <Divider orientation="left" size="small">其他</Divider>
-                <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                        <!-- <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button> -->
+                        <Divider orientation="left" size="small">慢性期</Divider>
+                        <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                        <Divider orientation="left" size="small">急性期</Divider>
+                        <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                        <Divider orientation="left" size="small">其他</Divider>
+                        <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
 
-                <Divider orientation="left" size="small">操作</Divider>
-                <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
-                <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
-                <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
-            </Row>
-        </Card>
-        <Card dis-hover :shadow="false" :padding="6">
-            <p>关系标注说明：请先选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
-            <Row>
-                <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
-                <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)">{{r}}</Button>
-                <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
-                <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
-                <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
-            </Row>
-            <Row>
-                <List border>
-                    <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
-                    <ListItem v-for="(r, idx) in relationships" :key="idx">
-                        <span class="rbox">{{ r.entity1.text }}</span>
-                        <span class="rbox">{{ r.relation }}</span>
-                        <span class="rbox">{{ r.entity2.text }}</span>
-                        <span class="rbox">{{ r.support_text }}</span>
-                        <span>
-                            <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
+                        <Divider orientation="left" size="small">操作</Divider>
+                        <Button class="btn" size="small" type="info" ghost @click="add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                    </Row>
+                </Card>
+                <Card dis-hover :shadow="false" :padding="6">
+                    <p>关系标注说明：请先选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
+                    <Row>
+                        <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
+                        <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)">{{r}}</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
+                        <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                    </Row>
+                    <Row>
+                        <List border>
+                            <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
+                            <ListItem v-for="(r, idx) in relationships" :key="idx">
+                                <span class="rbox">{{ r.entity1.text }}</span>
+                                <span class="rbox">{{ r.relation }}</span>
+                                <span class="rbox">{{ r.entity2.text }}</span>
+                                <span class="rbox">{{ r.support_text }}</span>
+                                <span>
+                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
+                                </span>
+                            </ListItem>
+                            <ListItem v-if="relationship_running">
+                                <span class="rbox" :class="{rrunning: relationship_running.running === 'entity1', rplaceholder: !relationship_running.entity1 }">
+                                    {{ relationship_running.entity1 ? relationship_running.entity1.text : '实体1' }}
+                                </span>
+                                <span class="rbox">
+                                    {{ relationship_running.relation }}
+                                </span>
+                                <span class="rbox" :class="{rrunning: relationship_running.running === 'entity2', rplaceholder: !relationship_running.entity2 }">
+                                    {{ relationship_running.entity2 ? relationship_running.entity2.text : '实体2' }}
+                                </span>
+                                <span class="rbox" :class="{rrunning: relationship_running.running === 'support_text', rplaceholder: !relationship_running.support_text}">
+                                    {{ relationship_running.support_text ? relationship_running.support_text : '关系支持文本' }}
+                                </span>
+                                <span v-if="relationship_running.running === 'support_text'">
+                                    <a href="#" @click.prevent="addRelation()">
+                                        添加无支持文本的实体关系
+                                    </a>
+                                    |
+                                </span>
+                                <span>
+                                    <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
+                                </span>
+                            </ListItem>
+                        </List>
+                    </Row>
+                    <Row v-if="relationship_running"> <!-- 提示文本 -->
+                        当前正在进行的操作：
+                        <span v-if="relationship_running.running === 'entity1'">
+                            请点选实体1
                         </span>
-                    </ListItem>
-                    <ListItem v-if="relationship_running">
-                        <span class="rbox" :class="{rrunning: relationship_running.running === 'entity1', rplaceholder: !relationship_running.entity1 }">
-                            {{ relationship_running.entity1 ? relationship_running.entity1.text : '实体1' }}
+                        <span v-else-if="relationship_running.running === 'entity2'">
+                            请点选实体2
                         </span>
-                        <span class="rbox">
-                            {{ relationship_running.relation }}
+                        <span v-else-if="relationship_running.running === 'support_text'">
+                            请勾选支持此关系的文本。也可添加无支持文本的实体关系
                         </span>
-                        <span class="rbox" :class="{rrunning: relationship_running.running === 'entity2', rplaceholder: !relationship_running.entity2 }">
-                            {{ relationship_running.entity2 ? relationship_running.entity2.text : '实体2' }}
+                        <span v-else>
+                            未知操作
                         </span>
-                        <span class="rbox" :class="{rrunning: relationship_running.running === 'support_text', rplaceholder: !relationship_running.support_text}">
-                            {{ relationship_running.support_text ? relationship_running.support_text : '关系支持文本' }}
-                        </span>
-                        <span v-if="relationship_running.running === 'support_text'">
-                            <a href="#" @click.prevent="addRelation()">
-                                添加无支持文本的实体关系
-                            </a>
-                            |
-                        </span>
-                        <span>
-                            <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
-                        </span>
-                    </ListItem>
-                </List>
-            </Row>
-            <Row v-if="relationship_running"> <!-- 提示文本 -->
-                当前正在进行的操作：
-                <span v-if="relationship_running.running === 'entity1'">
-                    请点选实体1
-                </span>
-                <span v-else-if="relationship_running.running === 'entity2'">
-                    请点选实体2
-                </span>
-                <span v-else-if="relationship_running.running === 'support_text'">
-                    请勾选支持此关系的文本。也可添加无支持文本的实体关系
-                </span>
-                <span v-else>
-                    未知操作
-                </span>
-            </Row>
-        </Card>
-        <br/>
-        <Row class="board">
-            <p>
-                <span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span>
-            </p>
-        </Row>
-        <Row style="margin-top: 5px">
-            <Button @click="show_confirm_modal = true">提交标注结果</Button>
-        </Row>
+                    </Row>
+                </Card>
+            </div>
+            <div slot="right" class="split-item">
+                <Row class="board">
+                    <p>
+                        <span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span>
+                    </p>
+                </Row>
+                <Row style="margin-top: 5px">
+                    <Button @click="show_confirm_modal = true">提交标注结果</Button>
+                </Row>
+            </div>
+        </Split>
 
         <!-- -->
         <Modal
@@ -237,6 +242,8 @@ export default {
     },
     data () {
         return {
+            split: 0.5,
+
             otags: [], // {start, end, symbol}
 
             add_tag_modal: false,
@@ -670,5 +677,12 @@ table.table {
 }
 .marginh {
     margin-right: 10px;
+}
+.split-box {
+    height: 650px;
+}
+.split-item {
+    padding-left: 20px;
+    padding-right: 10px;
 }
 </style>
