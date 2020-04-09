@@ -8,12 +8,15 @@
                         <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
 
                         <!-- <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button> -->
-                        <Divider orientation="left" size="small">慢性期</Divider>
-                        <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                        <Divider orientation="left" size="small">急性期</Divider>
-                        <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                        <Divider orientation="left" size="small">其他</Divider>
-                        <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+
+                        <div v-if="tags && tags.length > 0">
+                            <Divider orientation="left" size="small">慢性期</Divider>
+                            <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                            <Divider orientation="left" size="small">急性期</Divider>
+                            <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                            <Divider orientation="left" size="small">其他</Divider>
+                            <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                        </div>
 
                         <Divider orientation="left" size="small">操作</Divider>
                         <Button class="btn" size="small" type="info" ghost @click="randomColor(); add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
@@ -32,16 +35,6 @@
                     </Row>
                     <Row>
                         <List border>
-                            <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
-                            <ListItem v-for="(r, idx) in relationships" :key="idx">
-                                <span class="rbox">{{ r.entity1.text }}</span>
-                                <span class="rbox">{{ r.relation }}</span>
-                                <span class="rbox">{{ r.entity2.text }}</span>
-                                <span class="rbox">{{ r.support_text }}</span>
-                                <span>
-                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
-                                </span>
-                            </ListItem>
                             <ListItem v-if="relationship_running">
                                 <span class="rbox" :class="{rrunning: relationship_running.running === 'entity1', rplaceholder: !relationship_running.entity1 }">
                                     {{ relationship_running.entity1 ? relationship_running.entity1.text : '实体1' }}
@@ -65,6 +58,16 @@
                                     <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
                                 </span>
                             </ListItem>
+                            <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
+                            <ListItem v-for="(r, idx) in relationships.slice().reverse()" :key="idx">
+                                <span class="rbox">{{ r.entity1.text }}</span>
+                                <span class="rbox">{{ r.relation }}</span>
+                                <span class="rbox">{{ r.entity2.text }}</span>
+                                <span class="rbox">{{ r.support_text }}</span>
+                                <span>
+                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
+                                </span>
+                            </ListItem>
                         </List>
                     </Row>
                     <Row v-if="relationship_running"> <!-- 提示文本 -->
@@ -83,6 +86,7 @@
                         </span>
                     </Row>
                 </Card>
+                <div style="height: 700px"></div>
             </div>
             <div slot="right" class="split-item">
                 <Row class="board">
@@ -238,7 +242,8 @@ export default {
         tags: Array,
         relation_tags: Array,
         text: String,
-        intags: Array // {length, symbol}
+        intags: Array, // {length, symbol}
+        inrelationships: Array // []
     },
     data () {
         return {
@@ -302,6 +307,9 @@ export default {
         },
         intags () {
             this.init();
+        },
+        inrelationships () {
+            this.relationships = this.inrelationships.slice();
         }
     },
     methods: {
@@ -687,5 +695,7 @@ table.table {
 .split-item {
     padding-left: 20px;
     padding-right: 10px;
+    height: 650px;
+    overflow-y: scroll;
 }
 </style>

@@ -13,6 +13,10 @@
                 <span slot="close">隐藏</span>
             </Switch>
         </Row>
+        <Row>
+            <Button type="info" :disabled="prev_pos === null" @click="prevItem">上一条</Button>
+            <Button type="info" :disabled="next_pos === null" @click="nextItem">下一条</Button>
+        </Row>
         <br/>
         <div>
             <AnnotatingBoard
@@ -20,6 +24,7 @@
                 :relation_tags="task.relation_tags"
                 :text="task_item.content"
                 :intags="show_machine ? task_item.tags : null"
+                :inrelationships="task_item.relation_tags"
                 @addtag="addtag" @edittag="edittag" @deltag="deltag" @reordertag="reordertag" @setrelationtags="setrelationtags" @submit="submit"/>
         </div>
     </div>
@@ -39,7 +44,10 @@ export default {
         return {
             show_machine: true,
             task: {},
-            task_item: {}
+            task_item: {},
+            pos: null,
+            next_pos: null,
+            prev_pos: null
         };
     },
     async created () {
@@ -65,11 +73,21 @@ export default {
             let { data } = await http.get('get_dataset_task', {task_id: this.$route.params.task_id});
             this.task = data;
         },
+        async nextItem () {
+            this.pos = this.next_pos;
+            await this.updateTaskItem();
+        },
+        async prevItem () {
+            this.pos = this.prev_pos;
+            await this.updateTaskItem();
+        },
         async updateTaskItem () {
             this.$Spin.show();
             try {
-                let { data } = await http.get('get_next_task_item', {task_id: this.$route.params.task_id});
+                let { data } = await http.get('get_task_item', {task_id: this.$route.params.task_id, pos: this.pos});
                 this.task_item = data;
+                this.next_pos = data.next_pos;
+                this.prev_pos = data.prev_pos;
                 setTimeout(() => {
                     this.$Spin.hide();
                 }, 1000);
@@ -109,6 +127,7 @@ export default {
             });
             this.$Message.success('提交标注成功');
             setTimeout(() => {
+                this.pos = this.next_pos;
                 this.updateTaskItem();
             }, 1000); // 加一步确认
         }

@@ -119,34 +119,80 @@ router.post('/set_dataset_task_relation_tag', async ctx => {
     };
 });
 
-// task_id
-router.get('/get_next_task_item', async ctx => {
+// task_id, pos?=id number | 'new'
+router.get('/get_task_item', async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数非法');
 
-    let item = await TaskItem.findOne({task, by_human: false}).sort('confidence').populate('dataset_item');
+    let pos = ctx.query.pos;
+    let item = null; // 查询已经存在的item
+    if (pos && pos !== 'new') {
+        item = await TaskItem.findOne({task, pos}).populate('dataset_item');
+        assert(item, '参数错误');
+    } else {
+        item = await TaskItem.findOne({task, by_human: false}).sort('confidence').populate('dataset_item');
+    }
+
+    if (item && !item.pos) {
+        let count = await TaskItem.countDocuments({task: item.task, by_human: true, pos: {$exists: true}});
+        if (count > 0) {
+            let max_id = (await TaskItem.findOne({task: item.task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
+            item.pos = max_id + 1;
+        } else {
+            item.pos = 1;
+        }
+    }
+
     let task_info = null;
     if (item) {
+        let next_pos = null;
+        let prev_pos = null;
+
+        if (await TaskItem.findOne({task: item.task, pos: item.pos - 1})) {
+            prev_pos = item.pos - 1;
+        }
+        if (await TaskItem.findOne({task: item.task, pos: item.pos + 1})) {
+            next_pos = item.pos + 1;
+        } else if (await TaskItem.findOne({task: item.task, pos: item.pos})) {
+            next_pos = 'new';
+        }
+
         task_info = {
             dataset_item: item.dataset_item._id,
             content: item.dataset_item.content,
             tags: item.tags,
+            relation_tags: item.relation_tags,
             confidence: item.confidence,
-            by_human: item.by_human
+            by_human: item.by_human,
+            next_pos,
+            prev_pos
         };
     } else {
         let banned_items = (await TaskItem.find({task}).select('dataset_item')).map(i => i.dataset_item.toString());
         let dataset_item = await DatasetItem.findOne({dataset: task.dataset, _id: {$not: {$in: banned_items}}});
         if (dataset_item) {
+            let next_pos = null;
+            let prev_pos = null;
+
+            let count = await TaskItem.countDocuments({task: task, by_human: true, pos: {$exists: true}});
+            if (count > 0) {
+                let max_id = (await TaskItem.findOne({task: task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
+                prev_pos = max_id;
+            }
+
             task_info = {
                 dataset_item: dataset_item._id,
                 content: dataset_item.content,
                 tags: [{length: dataset_item.content.length, symbol: 'O'}],
+                relation_tags: [],
                 confidence: 0,
-                by_human: false
+                by_human: false,
+                next_pos,
+                prev_pos
             };
         }
     }
+
     ctx.body = {
         success: true,
         data: task_info
@@ -175,7 +221,23 @@ router.post('/set_task_item_tags', async ctx => {
     let relation_tags = ctx.request.body.relation_tags || [];
     assert(_.isArray(relation_tags), '参数错误');
 
-    await TaskItem.findOneAndUpdate({task, dataset_item}, {task, dataset_item, tags, relation_tags, by_human: true}, {upsert: true});
+    let pos = -1;
+
+    let task_item = await TaskItem.findOne({task, dataset_item});
+    if (task_item) {
+        pos = task_item.pos;
+    } else {
+        let count = await TaskItem.countDocuments({task: task, by_human: true, pos: {$exists: true}});
+        if (count > 0) {
+            let max_id = (await TaskItem.findOne({task: task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
+            pos = max_id + 1;
+        } else {
+            pos = 1;
+        }
+    }
+    assert(pos >= 1);
+
+    await TaskItem.findOneAndUpdate({task, dataset_item}, {task, dataset_item, pos, tags, relation_tags, by_human: true}, {upsert: true});
     ctx.body = {
         success: true
     };
