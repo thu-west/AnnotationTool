@@ -90,9 +90,7 @@
             </div>
             <div slot="right" class="split-item">
                 <Row class="board">
-                    <p>
-                        <span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span>
-                    </p>
+                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span></pre>
                 </Row>
                 <Row style="margin-top: 5px">
                     <Button @click="show_confirm_modal = true">提交标注结果</Button>
@@ -657,6 +655,10 @@ export default {
     border: 1px solid #c7c7c7;
     border-radius: 2px;
     padding: 5px;
+}
+.break {
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 .btn {
     margin: 5px;
