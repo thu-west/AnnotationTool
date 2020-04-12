@@ -65,7 +65,7 @@
                                 <span class="rbox">{{ r.entity2.text }}</span>
                                 <span class="rbox">{{ r.support_text }}</span>
                                 <span>
-                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(idx)"><Icon type="md-close" />删除此关系</Button>
+                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(relationships.length - idx - 1)"><Icon type="md-close" />删除此关系</Button>
                                 </span>
                             </ListItem>
                         </List>
