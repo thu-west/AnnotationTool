@@ -287,6 +287,7 @@ export default {
             },
             relationships: [],
             relationship_running: null, // {running: string, entity1, relation, entity2, support}
+            last_relationship_running: Date.now(), // ms
 
             show_confirm_modal: false
         };
@@ -560,6 +561,7 @@ export default {
         },
         click (idx) {
             if (!this.relationship_running) return;
+            this.last_relationship_running = Date.now();
             if (this.relationship_running.running === 'entity1' || this.relationship_running.running === 'entity2') {
                 let otags = _.clone(this.otags);
                 let tag = otags[idx];
@@ -581,6 +583,7 @@ export default {
         },
         mouseup () {
             if (!this.relationship_running || this.relationship_running.running !== 'support_text') return;
+            this.last_relationship_running = Date.now();
 
             if (!window.getSelection) {
                 alert('请使用谷歌浏览器火狐浏览器进行操作。');
@@ -627,6 +630,13 @@ export default {
             this.relationships.splice(idx, 1);
         },
         dbclick (idx) {
+            if (this.relationship_running || Date.now() - this.last_relationship_running < 1000) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '你双击了一个实体文本，但是目前正在进行关系标注，无法删除实体文本。如果要删除实体文本请结束关系标注之后再进行。'
+                });
+                return;
+            }
             let otags = _.clone(this.otags);
             otags[idx].symbol = 'O';
             this.otags = this.mergeTags(otags);
