@@ -220,6 +220,13 @@ router.post('/set_task_item_tags', async ctx => {
 
     let relation_tags = ctx.request.body.relation_tags || [];
     assert(_.isArray(relation_tags), '参数错误');
+    for (let r of relation_tags) {
+        assert(_.isArray(r.entity1), '参数错误');
+        assert(_.isArray(r.entity2), '参数错误');
+        assert(_.isString(r.relation_type) && r.relation_type, '参数错误');
+        assert(_.isString(r.relation_type_text) && r.relation_type_text, '参数错误');
+        assert(_.isString(r.relation) && r.relation, '参数错误');
+    }
 
     let pos = -1;
 

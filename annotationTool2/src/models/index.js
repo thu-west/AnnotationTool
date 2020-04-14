@@ -1,5 +1,6 @@
 let mongoose = require('mongoose');
 let config = require('../config');
+let _ = require('lodash');
 
 mongoose.Promise = global.Promise;
 
@@ -23,6 +24,27 @@ async function buildID () {
         console.log(item.pos);
         await item.save();
     }
+
+    for (let skip = 0; ;skip++) {
+        let item = await TaskItem.findOne({ 'relation_tags.0': { '$exists': true } }).skip(skip).populate('task');
+        if (!item) break;
+
+        for (let r of item.relation_tags) {
+            if (!_.has(r, 'relation_type')) {
+                r.relation_type = 'one2one';
+                r.relation_type_text = '一对一';
+            }
+            if (!_.isArray(r.entity1)) {
+                r.entity1 = [r.entity1];
+            }
+            if (!_.isArray(r.entity2)) {
+                r.entity2 = [r.entity2];
+            }
+        }
+        item.markModified('relation_tags');
+        await item.save();
+    }
+    console.log('rebuild db success');
 }
 
 mongoose.connect(config.MONGODB_URL, {

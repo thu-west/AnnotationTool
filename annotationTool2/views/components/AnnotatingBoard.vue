@@ -25,50 +25,134 @@
                     </Row>
                 </Card>
                 <Card dis-hover :shadow="false" :padding="6">
-                    <p>关系标注说明：请先选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
+                    <p>关系标注说明：请先选择需要标注的关系类型，然后选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
                     <Row>
-                        <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
-                        <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)">{{r}}</Button>
-                        <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
-                        <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
-                        <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                        <table class="table">
+                            <tr>
+                                <th style="min-width: 7em">关系类型:</th>
+                                <td>
+                                    <RadioGroup v-model="relation_type_with_text">
+                                        <Radio label="one2one|一对一" :disabled="relationship_running !== null">
+                                            <span>一对一</span>
+                                        </Radio>
+                                        <Radio label="one2many|一对多_和" :disabled="relationship_running !== null">
+                                            <span>一对多_和</span>
+                                        </Radio>
+                                        <Radio label="one2many|一对多_或" :disabled="relationship_running !== null">
+                                            <span>一对多_或</span>
+                                        </Radio>
+                                        <Radio label="one2many|一对多_一" :disabled="relationship_running !== null">
+                                            <span>一对多_一</span>
+                                        </Radio>
+                                        <Radio label="many2one|多对一_和" :disabled="relationship_running !== null">
+                                            <span>多对一_和</span>
+                                        </Radio>
+                                        <Radio label="many2one|多对一_或" :disabled="relationship_running !== null">
+                                            <span>多对一_或</span>
+                                        </Radio>
+                                        <Radio label="many2one|多对一_一" :disabled="relationship_running !== null">
+                                            <span>多对一_一</span>
+                                        </Radio>
+                                    </RadioGroup>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="min-width: 6em">关系标签:</th>
+                                <td>
+                                    <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
+                                    <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)" :disabled="relation_type_with_text.length === 0 || relationship_running !== null">{{r}}</Button>
+                                    <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
+                                    <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
+                                    <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                                </td>
+                            </tr>
+                        </table>
                     </Row>
                     <Row>
-                        <List border>
-                            <ListItem v-if="relationship_running">
-                                <span class="rbox" :class="{rrunning: relationship_running.running === 'entity1', rplaceholder: !relationship_running.entity1 }">
-                                    {{ relationship_running.entity1 ? relationship_running.entity1.text : '实体1' }}
-                                </span>
-                                <span class="rbox">
-                                    {{ relationship_running.relation }}
-                                </span>
-                                <span class="rbox" :class="{rrunning: relationship_running.running === 'entity2', rplaceholder: !relationship_running.entity2 }">
-                                    {{ relationship_running.entity2 ? relationship_running.entity2.text : '实体2' }}
-                                </span>
-                                <span class="rbox" :class="{rrunning: relationship_running.running === 'support_text', rplaceholder: !relationship_running.support_text}">
-                                    {{ relationship_running.support_text ? relationship_running.support_text : '关系支持文本' }}
-                                </span>
-                                <span v-if="relationship_running.running === 'support_text'">
-                                    <a href="#" @click.prevent="addRelation()">
-                                        添加无支持文本的实体关系
-                                    </a>
-                                    |
-                                </span>
-                                <span>
-                                    <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
-                                </span>
-                            </ListItem>
-                            <ListItem v-if="relationships.length == 0">暂无关系</ListItem>
-                            <ListItem v-for="(r, idx) in relationships.slice().reverse()" :key="idx">
-                                <span class="rbox">{{ r.entity1.text }}</span>
-                                <span class="rbox">{{ r.relation }}</span>
-                                <span class="rbox">{{ r.entity2.text }}</span>
-                                <span class="rbox">{{ r.support_text }}</span>
-                                <span>
-                                    <Button class="btn" size="small" type="info" ghost @click="removeRelationship(relationships.length - idx - 1)"><Icon type="md-close" />删除此关系</Button>
-                                </span>
-                            </ListItem>
-                        </List>
+                        <br/>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>关系类型</th>
+                                    <th>实体1</th>
+                                    <th>关系</th>
+                                    <th>实体2</th>
+                                    <th>支持文本</th>
+                                    <th>#</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-if="relationship_running">
+                                    <td>
+                                        {{ relationship_running.relation_type_text }}
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            <li v-for="(entity, idx) in relationship_running.entity1" :key="idx">{{ entity.text }}</li>
+                                            <li class="rplaceholder" v-if="!relationship_running.entity1 || relationship_running.running === 'entity1'" :class="{rrunning: relationship_running.running === 'entity1' }" >实体1</li>
+                                            <li v-if="relationship_running.entity1 && relationship_running.entity1.length > 0 && relationship_running.running === 'entity1' && running_entity1_multi"><a href="#" @click.prevent="endEntity1">选择完毕</a></li>
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {{ relationship_running.relation }}
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            <li v-for="(entity, idx) in relationship_running.entity2" :key="idx">{{ entity.text }}</li>
+                                            <li class="rplaceholder" v-if="!relationship_running.entity2 || relationship_running.running === 'entity2'" :class="{rrunning: relationship_running.running === 'entity2' }" >实体2</li>
+                                            <li v-if="relationship_running.entity2 && relationship_running.entity2.length > 0 && relationship_running.running === 'entity2' && running_entity2_multi"><a href="#" @click.prevent="endEntity2">选择完毕</a></li>
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        <span :class="{rrunning: relationship_running.running === 'support_text', rplaceholder: !relationship_running.support_text}">
+                                            {{ relationship_running.support_text ? relationship_running.support_text : '关系支持文本' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            <li v-if="relationship_running.running === 'support_text'">
+                                                <a href="#" @click.prevent="addRelation()">
+                                                    添加无支持文本的实体关系
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a href="#" @click.prevent="relationship_running = null">取消当前标注</a>
+                                            </li>
+                                        </ul>
+                                    </td>
+                                </tr>
+
+                                <tr v-if="relationships.length == 0">
+                                    <td colspan="6">暂无关系</td>
+                                </tr>
+                                <tr v-for="(r, idx) in relationships.slice().reverse()" :key="idx">
+                                    <td>
+                                        {{ r.relation_type_text }}
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            <li v-for="(entity, idx) in r.entity1" :key="idx">{{ entity.text }}</li>
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {{ r.relation }}
+                                    </td>
+                                    <td>
+                                        <ul>
+                                            <li v-for="(entity, idx) in r.entity2" :key="idx">{{ entity.text }}</li>
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {{ r.support_text }}
+                                    </td>
+                                    <td>
+                                        <Button class="btn" size="small" type="info" ghost @click="removeRelationship(relationships.length - idx - 1)"><Icon type="md-close" />删除此关系</Button>
+                                    </td>
+                                </tr>
+
+                            </tbody>
+                        </table>
+                        <br/>
                     </Row>
                     <Row v-if="relationship_running"> <!-- 提示文本 -->
                         当前正在进行的操作：
@@ -200,9 +284,10 @@
                 </span>
             </Row>
             <Divider size="small">关系标注：</Divider>
-            <table class="table">
+            <table class="table table-center">
                 <thead>
                     <tr>
+                        <th>关系类型</th>
                         <th>实体1</th>
                         <th>关系</th>
                         <th>实体2</th>
@@ -211,15 +296,30 @@
                 </thead>
                 <tbody>
                     <tr v-if="relationships.length == 0">
-                        <td colspan="4">
+                        <td colspan="5">
                             无关系标注
                         </td>
                     </tr>
-                    <tr v-for="(r, idx) in relationships" :key="idx">
-                        <td>{{ r.entity1.text }}</td>
-                        <td>{{ r.relation }}</td>
-                        <td>{{ r.entity2.text }}</td>
-                        <td>{{ r.support_text }}</td>
+                    <tr v-for="(r, idx) in relationships.slice().reverse()" :key="idx">
+                        <td>
+                            {{ r.relation_type_text }}
+                        </td>
+                        <td>
+                            <ul>
+                                <li v-for="(entity, idx) in r.entity1" :key="idx">{{ entity.text }}</li>
+                            </ul>
+                        </td>
+                        <td>
+                            {{ r.relation }}
+                        </td>
+                        <td>
+                            <ul>
+                                <li v-for="(entity, idx) in r.entity2" :key="idx">{{ entity.text }}</li>
+                            </ul>
+                        </td>
+                        <td>
+                            {{ r.support_text }}
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -285,6 +385,7 @@ export default {
                     trigger: 'blur'
                 }
             },
+            relation_type_with_text: '',
             relationships: [],
             relationship_running: null, // {running: string, entity1, relation, entity2, support}
             last_relationship_running: Date.now(), // ms
@@ -309,6 +410,22 @@ export default {
         },
         inrelationships () {
             this.relationships = this.inrelationships.slice();
+        }
+    },
+    computed: {
+        running_entity1_multi () { // 正在标注的实体1是否是多个
+            if (!this.relation_type_with_text) return false;
+            let type = this.relation_type_with_text.split('|')[0];
+            let types = type.split('2');
+            if (types.length !== 2) return false;
+            return types[0] === 'many';
+        },
+        running_entity2_multi () {
+            if (!this.relation_type_with_text) return false;
+            let type = this.relation_type_with_text.split('|')[0];
+            let types = type.split('2');
+            if (types.length !== 2) return false;
+            return types[1] === 'many';
         }
     },
     methods: {
@@ -568,18 +685,53 @@ export default {
                 if (tag.symbol === 'O') {
                     this.$Message.error('请选择一个实体');
                 } else {
-                    this.relationship_running[this.relationship_running.running] = {
+                    if (!this.relationship_running[this.relationship_running.running]) {
+                        this.relationship_running[this.relationship_running.running] = [];
+                    }
+                    this.relationship_running[this.relationship_running.running].push({
                         start_pos: tag.start,
                         end_pos: tag.end,
                         text: this.text.slice(tag.start, tag.end)
-                    };
+                    });
+                    // 上面的代码无法让Vue响应
+                    this.relationship_running = _.clone(this.relationship_running);
                     if (this.relationship_running.running === 'entity1') {
-                        this.relationship_running.running = 'entity2';
+                        if (!this.running_entity1_multi) {
+                            this.relationship_running.running = 'entity2';
+                        }
                     } else {
-                        this.relationship_running.running = 'support_text';
+                        if (!this.running_entity2_multi) {
+                            this.relationship_running.running = 'support_text';
+                        }
                     }
                 }
             }
+        },
+        endEntity1 () {
+            if (!this.relationship_running) return;
+            this.last_relationship_running = Date.now();
+            if (this.relationship_running.running !== 'entity1') return;
+            if (this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '请至少选择一个实体'
+                });
+                return;
+            }
+            this.relationship_running.running = 'entity2';
+        },
+        endEntity2 () {
+            if (!this.relationship_running) return;
+            this.last_relationship_running = Date.now();
+            if (this.relationship_running.running !== 'entity2') return;
+            if (this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '请至少选择一个实体'
+                });
+                return;
+            }
+            this.relationship_running.running = 'support_text';
         },
         mouseup () {
             if (!this.relationship_running || this.relationship_running.running !== 'support_text') return;
@@ -644,6 +796,8 @@ export default {
         setRelation (re) {
             this.relationship_running = {
                 running: 'entity1',
+                relation_type: this.relation_type_with_text.split('|')[0],
+                relation_type_text: this.relation_type_with_text.split('|')[1],
                 relation: re
             };
         },
@@ -673,12 +827,7 @@ export default {
 .btn {
     margin: 5px;
 }
-.rbox {
-    margin-left: 10px;
-    margin-right: 10px;
-}
 .rplaceholder {
-    min-width: 100px;
     text-align: center;
     color: #9c9c9c;
 }
@@ -692,11 +841,18 @@ export default {
 table.table, table.table th, table.table td {
     border: 1px solid black;
 }
-table.table th, table.table td {
-    text-align: center;
-}
 table.table {
     border-collapse: collapse;
+}
+table.table th, table.table td {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+table.table ul, table.table ol {
+    padding-left: 10px;
+}
+table.table-center th, table.table-center td {
+    text-align: center;
 }
 .marginh {
     margin-right: 10px;

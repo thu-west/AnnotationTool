@@ -28,17 +28,19 @@ let taskItemSchema = new mongoose.Schema({
     relation_tags: {
         type: [
             {
-                entity1: {
+                entity1: [{
                     start_pos: Number,
                     end_pos: Number,
                     text: String
-                },
+                }],
+                relation_type: String, // one2one, one2many, many2one
+                relation_type_text: String, // 一对一, 一对多_和 ...
                 relation: String,
-                entity2: {
+                entity2: [{
                     start_pos: Number,
                     end_pos: Number,
                     text: String
-                },
+                }],
                 support_text: String // 可选
             }
         ],
