@@ -865,5 +865,6 @@ table.table-center th, table.table-center td {
     padding-right: 10px;
     height: 650px;
     overflow-y: scroll;
+    overflow-x: scroll;
 }
 </style>
