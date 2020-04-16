@@ -20,6 +20,9 @@
                             <a href="#" @click.prevent="">主动学习状态</a>
                         </Poptip>
                     </li>
+                    <li>
+                        <a :href="'/api/download_task_triple?task_id=' + task._id">下载标注</a>
+                    </li>
                     <li v-if="for_edit">
                         <a href="#" @click.prevent="handleDeleteTask(task)">删除</a>
                     </li>

@@ -190,6 +190,18 @@ router.get('/get_task_item', async ctx => {
                 next_pos,
                 prev_pos
             };
+        } else {
+            let prev_pos = null;
+
+            let count = await TaskItem.countDocuments({task: task, by_human: true, pos: {$exists: true}});
+            if (count > 0) {
+                let max_id = (await TaskItem.findOne({task: task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
+                prev_pos = max_id;
+            }
+            task_info = {
+                prev_pos,
+                next_pos: null
+            };
         }
     }
 
@@ -248,4 +260,115 @@ router.post('/set_task_item_tags', async ctx => {
     ctx.body = {
         success: true
     };
+});
+
+// task_id
+router.get('/download_task_triple', async ctx => {
+    let task = await Task.findById(ctx.query.task_id).populate('dataset');
+    assert(task, '参数错误');
+
+    let triples = [];
+
+    let entity_id = 0;
+
+    let entity_type_map = new Map(); // name -> id
+    let entity_symbol2type = new Map(); // symbol -> name
+    for (let t of task.tags) {
+        let name = `${t.name}(${t.symbol})`;
+        assert(!entity_type_map.has(name), '标注错误0');
+        assert(!entity_symbol2type.has(t.symbol), '标注错误1');
+        entity_symbol2type.set(t.symbol, name);
+        entity_type_map.set(name, entity_id);
+        entity_id++;
+    }
+
+    let entity_text_map = new Map(); // text -> id
+    let entity_text_printed = new Set(); // text|symbol
+    for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        for (let r of item.relation_tags) {
+            let pairs = [];
+            for (let entities of [r.entity1, r.entity2]) {
+                let this_texts = [];
+                for (let entity of entities) {
+                    let text = entity.text;
+
+                    let start = 0;
+                    let symbol = null;
+                    for (let t of item.tags) {
+                        if (start === entity.start_pos && t.length === entity.end_pos - entity.start_pos) {
+                            symbol = t.symbol;
+                        }
+                        start += t.length;
+                    }
+                    assert(symbol !== null && symbol !== 'O', '标注错误2');
+                    if (!entity_symbol2type.has(symbol)) continue;
+
+                    if (!entity_text_map.has(text)) {
+                        entity_text_map.set(text, entity_id);
+                        entity_id++;
+                    }
+
+                    if (!entity_text_printed.has(text + '|' + symbol)) {
+                        entity_text_printed.add(text + '|' + symbol);
+
+                        triples.push([
+                            `${entity_text_map.get(text)}:${text}`,
+                            'is_an_instance_of',
+                            `${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`
+                        ]);
+                    }
+
+                    this_texts.push(`${entity_text_map.get(text)}:${text}`);
+                }
+                pairs.push(this_texts);
+            }
+            if (pairs.length === 2 && pairs[0].length > 0 && pairs[1].length > 0) {
+                if (r.relation_type === 'one2one') {
+                    assert(pairs[0].length === 1 && pairs[1].length === 1, '标注错误3');
+                    triples.push([
+                        pairs[0][0],
+                        r.relation,
+                        pairs[1][0]
+                    ]);
+                } else if (r.relation_type === 'one2many') {
+                    assert(pairs[0].length === 1, '标注错误4');
+                    let v = `${entity_id}:${r.relation_type_text}`;
+                    entity_id++;
+                    triples.push([
+                        pairs[0][0],
+                        r.relation,
+                        v
+                    ]);
+                    for (let n of pairs[1]) {
+                        triples.push([
+                            v,
+                            'has_a',
+                            n
+                        ]);
+                    }
+                } else if (r.relation_type === 'many2one') {
+                    assert(pairs[1].length === 1, '标注错误5');
+                    let v = `${entity_id}:${r.relation_type_text}`;
+                    entity_id++;
+                    for (let n of pairs[0]) {
+                        triples.push([
+                            n,
+                            'is_a',
+                            v
+                        ]);
+                    }
+                    triples.push([
+                        v,
+                        r.relation,
+                        pairs[1][0]
+                    ]);
+                } else {
+                    assert(false, '标注错误6');
+                }
+            }
+        }
+    }
+
+    ctx.set('Content-Disposition', 'attachment; filename="triples.json"');
+    ctx.body = JSON.stringify(triples, null, 4);
 });

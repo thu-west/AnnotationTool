@@ -174,7 +174,7 @@
             </div>
             <div slot="right" class="split-item">
                 <Row class="board">
-                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span></pre>
+                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="window.alert(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span></pre>
                 </Row>
                 <Row style="margin-top: 5px">
                     <Button @click="show_confirm_modal = true">提交标注结果</Button>
@@ -652,6 +652,14 @@ export default {
             idx = Number(this.$refs['items'][idx].getAttribute('data'));
             console.log(rangeObj);
             console.log('idx', idx);
+
+            if (this.otags[idx].symbol !== 'O') {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '该文本已经被标注了其他实体。'
+                });
+                return;
+            }
 
             let otags = _.clone(this.otags);
             otags = _.concat(

@@ -30,7 +30,7 @@ async function buildID () {
         if (!item) break;
 
         for (let r of item.relation_tags) {
-            if (!_.has(r, 'relation_type')) {
+            if (!r.relation_type) {
                 r.relation_type = 'one2one';
                 r.relation_type_text = '一对一';
             }
