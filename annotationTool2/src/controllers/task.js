@@ -267,6 +267,7 @@ router.get('/download_task_triple', async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 
+    let instance_of = {};
     let triples = [];
 
     let entity_id = 0;
@@ -316,6 +317,10 @@ router.get('/download_task_triple', async ctx => {
                             'is_an_instance_of',
                             `${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`
                         ]);
+                        if (!_.has(instance_of, `${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`)) {
+                            instance_of[`${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`] = [];
+                        }
+                        instance_of[`${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`].push(`${entity_text_map.get(text)}:${text}`);
                     }
 
                     this_texts.push(`${entity_text_map.get(text)}:${text}`);
@@ -369,6 +374,6 @@ router.get('/download_task_triple', async ctx => {
         }
     }
 
-    ctx.set('Content-Disposition', 'attachment; filename="triples.json"');
-    ctx.body = JSON.stringify(triples, null, 4);
+    ctx.set('Content-Disposition', 'attachment; filename="download.json"');
+    ctx.body = JSON.stringify({instance_of, triples}, null, 4);
 });
