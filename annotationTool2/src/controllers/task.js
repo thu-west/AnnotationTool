@@ -183,7 +183,7 @@ router.get('/get_task_item', async ctx => {
             task_info = {
                 dataset_item: dataset_item._id,
                 content: dataset_item.content,
-                tags: [{length: dataset_item.content.length, symbol: 'O'}],
+                tags: [{length: dataset_item.content.length, symbol: 'O', text: dataset_item.content}],
                 relation_tags: [],
                 confidence: 0,
                 by_human: false,
@@ -225,7 +225,8 @@ router.post('/set_task_item_tags', async ctx => {
         assert(_.isObject(tag), '参数错误');
         assert(_.has(tag, 'length') && _.isNumber(tag.length) && tag.length > 0, '参数错误');
         assert(_.has(tag, 'symbol') && _.isString(tag.symbol) && (tag.symbol === 'O' || _.some(task.tags, i => i.symbol === tag.symbol)), '参数错误');
-        assert(_.keys(tag).length === 2, '参数错误');
+        assert(_.has(tag, 'text') && _.isString(tag.text), '参数错误');
+        assert(_.keys(tag).length === 3, '参数错误');
         sum_length += tag.length;
     }
     assert(sum_length === dataset_item.content.length, '总长度不正确');

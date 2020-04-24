@@ -19,7 +19,8 @@ let taskItemSchema = new mongoose.Schema({
     tags: {
         type: [{ // tags是依次排开的，length之和必须和原文本长度之和相同
             length: {type: Number, required: true},
-            symbol: {type: String, required: true}
+            symbol: {type: String, required: true},
+            text: {type: String, required: true}
         }],
         required: true,
         default: []

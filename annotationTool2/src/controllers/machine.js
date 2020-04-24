@@ -1,4 +1,4 @@
-require('should');
+let should = require('should');
 let Router = require('koa-router');
 let assert = require('assert');
 let uuidv1 = require('uuid/v1');
@@ -143,19 +143,32 @@ router.get('/get_machine_task/download', async ctx => {
 router.post('/upload_machine_task', async ctx => {
     let task = await Task.findById(ctx.request.body.task_id).populate('dataset');
     assert(task, '参数错误');
-    task.machine_status = `[${moment().format('YYYY-MM-DD HH:mm')}]` + '学习完毕';
-    await task.save();
 
     let passed_cnt = 0;
     for (let item of ctx.request.body.data) {
         let dataset_item = await DatasetItem.findOne({dataset: task.dataset, id: item.id});
         if (dataset_item) {
             if (!await TaskItem.findOne({task, dataset_item, by_human: true})) {
+                let start = 0;
+                for (let t of item.tags) {
+                    should(t).an.Object().and.has.property('length').an.Number();
+                    should(t).an.Object().and.has.property('symbol').a.String();
+                    should(t).an.Object().and.has.property('text').a.String();
+                    assert(t.length > 0);
+                    assert(t.symbol.length > 0);
+                    assert(t.text.length > 0);
+                    start += t.length;
+                }
+                assert(start === dataset_item.content.length);
+
                 await TaskItem.findOneAndUpdate({task, dataset_item}, {task, dataset_item, by_human: false, tags: item.tags, confidence: item.confidence}, {upsert: true});
                 passed_cnt++;
             }
         }
     }
+    task.machine_status = `[${moment().format('YYYY-MM-DD HH:mm')}]` + `学习完毕,上传了${passed_cnt}个数据`;
+    await task.save();
+
     console.log('upload_machine_task', ctx.request.body.data.length, passed_cnt);
     task.machine_running = false;
     await task.save();

@@ -1,6 +1,7 @@
 let mongoose = require('mongoose');
 let config = require('../config');
 let _ = require('lodash');
+let assert = require('assert');
 
 mongoose.Promise = global.Promise;
 
@@ -29,21 +30,50 @@ async function buildID () {
         let item = await TaskItem.findOne({ 'relation_tags.0': { '$exists': true } }).skip(skip).populate('task');
         if (!item) break;
 
+        let modified = false;
         for (let r of item.relation_tags) {
             if (!r.relation_type) {
                 r.relation_type = 'one2one';
                 r.relation_type_text = '一对一';
+                modified = true;
             }
             if (!_.isArray(r.entity1)) {
                 r.entity1 = [r.entity1];
+                modified = true;
             }
             if (!_.isArray(r.entity2)) {
                 r.entity2 = [r.entity2];
+                modified = true;
             }
         }
-        item.markModified('relation_tags');
-        await item.save();
+        if (modified) {
+            item.markModified('relation_tags');
+            await item.save();
+        }
     }
+
+    for (let skip = 0; ; skip++) {
+        let item = await TaskItem.findOne().skip(skip).populate('dataset_item');
+        if (!item) break;
+
+        let start = 0;
+        let modified = false;
+        item.tags = item.tags.filter(t => t.length > 0);
+        for (let t of item.tags) {
+            if (!t.text) {
+                t.text = item.dataset_item.content.slice(start, start + t.length);
+                assert(t.text.length === t.length);
+                modified = true;
+            }
+            start += t.length;
+        }
+        assert(start === item.dataset_item.content.length);
+        if (modified) {
+            item.markModified('tags');
+            await item.save();
+        }
+    }
+
     console.log('rebuild db success');
 }
 

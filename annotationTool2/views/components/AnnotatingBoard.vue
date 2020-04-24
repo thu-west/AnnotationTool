@@ -3,7 +3,7 @@
         <Split v-model="split" class="split-box">
             <div slot="left" class="split-item">
                 <Card dis-hover :shadow="false" :padding="6">
-                    <p>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。</p>
+                    <h4>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。鼠标右键已经标注的实体可以对实体文本进行修改。</h4>
                     <Row>
                         <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
 
@@ -174,7 +174,7 @@
             </div>
             <div slot="right" class="split-item">
                 <Row class="board">
-                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="window.alert(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span></pre>
+                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="showTextModify(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{t.text}}</span></pre>
                 </Row>
                 <Row style="margin-top: 5px">
                     <Button @click="show_confirm_modal = true">提交标注结果</Button>
@@ -264,6 +264,21 @@
 
         <!-- -->
         <Modal
+            v-model="modify_modal"
+            title="修改文本"
+            :footer-hide="true">
+            <Form ref="modifyForm" :model="modify_form" :rules="modify_rules" :label-width="80">
+                <FormItem prop="text" label="文本">
+                    <Input type="text" v-model="modify_form.text"/>
+                </FormItem>
+                <FormItem>
+                    <Button type="primary" @click="handleTextModifySubmit('modifyForm')">修改</Button>
+                </FormItem>
+            </Form>
+        </Modal>
+
+        <!-- -->
+        <Modal
             v-model="show_confirm_modal"
             title="确认标注"
             @on-ok="handleSubmit"
@@ -279,7 +294,7 @@
                 <span v-else>
                     :
                     <span v-for="(ot, idx) in otags.filter(ot => ot.symbol == t.symbol)" :key="ot.start">
-                        {{ idx == 0 ? text.slice(ot.start, ot.end) : ' | ' + text.slice(ot.start, ot.end) }}
+                        {{ idx == 0 ? ot.text : ' | ' + ot.text }}
                     </span>
                 </span>
             </Row>
@@ -333,21 +348,21 @@ import color from 'color';
 
 // emit: addtag({color, name, symbol})， edittag({color, name, symbol}), deltag(symbol), reordertag(symbols)
 // emit: setrelationtags(names)
-// submit({otags, orelationships}) // [{length, symbol}]
+// submit({otags, orelationships}) // [{length, symbol, text}]
 export default {
     name: 'AnnotatingBoard',
     props: {
-        tags: Array,
-        relation_tags: Array,
-        text: String,
-        intags: Array, // {length, symbol}
+        tags: Array, // 实体标签
+        relation_tags: Array, // 关系标签
+        text: String, // 文本
+        intags: Array, // [{length, symbol, text}]
         inrelationships: Array // []
     },
     data () {
         return {
             split: 0.5,
 
-            otags: [], // {start, end, symbol}
+            otags: [], // {start, end, symbol, text}
 
             add_tag_modal: false,
             del_tag_modal: false,
@@ -389,6 +404,20 @@ export default {
             relationships: [],
             relationship_running: null, // {running: string, entity1, relation, entity2, support}
             last_relationship_running: Date.now(), // ms
+
+            // 修改文本
+            modify_modal: false,
+            modify_idx: -1,
+            modify_form: {
+                text: ''
+            },
+            modify_rules: {
+                text: {
+                    required: true,
+                    message: '文本必填',
+                    trigger: 'blur'
+                }
+            },
 
             show_confirm_modal: false
         };
@@ -516,13 +545,49 @@ export default {
             this.$set(this.relation_tags, idx + 1, a);
             this.$emit('setrelationtags', this.relation_tags);
         },
+        showTextModify (idx) {
+            if (this.otags[idx].symbol === 'O') {
+                this.$Modal.warning({
+                    title: '错误',
+                    content: '只能对实体文本进行修改'
+                });
+                return;
+            }
+
+            this.modify_modal = true;
+            this.modify_idx = idx;
+            this.modify_form.text = this.otags[idx].text;
+        },
+        handleTextModifySubmit (name) {
+            this.$refs[name].validate((valid) => {
+                if (valid) {
+                    this.otags[this.modify_idx].text = this.modify_form.text;
+                    this.otags = this.mergeTags(this.otags);
+                    this.modify_modal = false;
+                }
+            });
+        },
         // 将相邻的符号相同的段进行合并
         mergeTags (otags) {
+            otags = _.cloneDeep(otags);
             otags = otags.filter(t => t.start < t.end); // 去掉长度为0的
+            for (let i = 0; i < otags.length; i++) {
+                if (otags[i].symbol === 'O') { //
+                    otags[i].text = this.text.slice(otags[i].start, otags[i].end);
+                }
+                if (i > 0 && otags[i].start !== otags[i - 1].end) {
+                    this.$Message.error({
+                        title: '错误',
+                        content: '出现错误[0],请联系管理员'
+                    });
+                    throw new Error('出现错误[0],请联系管理员');
+                }
+            }
+
             let merged_otags = [];
             for (let i = 0; i < otags.length; i++) {
                 if (merged_otags.length === 0) {
-                    merged_otags.push(otags[i]);
+                    merged_otags.push(_.clone(otags[i]));
                 } else {
                     if (merged_otags[merged_otags.length - 1].symbol === otags[i].symbol) {
                         if (merged_otags[merged_otags.length - 1].end !== otags[i].start) {
@@ -530,8 +595,9 @@ export default {
                             throw new Error('出现错误：合并出错，请联系管理员进行处理。');
                         }
                         merged_otags[merged_otags.length - 1].end = otags[i].end;
+                        merged_otags[merged_otags.length - 1].text += otags[i].text;
                     } else {
-                        merged_otags.push(otags[i]);
+                        merged_otags.push(_.clone(otags[i]));
                     }
                 }
             }
@@ -557,7 +623,8 @@ export default {
                     otags = [{
                         start: 0,
                         end: this.text.length,
-                        symbol: 'O'
+                        symbol: 'O',
+                        text: this.text
                     }];
                 } else {
                     let sum_length = 0;
@@ -574,7 +641,8 @@ export default {
                             otags.push({
                                 start,
                                 end: start + this.intags[i].length,
-                                symbol: this.intags[i].symbol
+                                symbol: this.intags[i].symbol,
+                                text: this.intags[i].text
                             });
                             start += this.intags[i].length;
                         }
@@ -616,7 +684,8 @@ export default {
                     {
                         start: 0,
                         end: this.text.length,
-                        symbol: 'O'
+                        symbol: 'O',
+                        text: this.text
                     }
                 ];
             } else {
@@ -667,17 +736,20 @@ export default {
                 {
                     start: otags[idx].start,
                     end: rangeObj.startOffset + otags[idx].start,
-                    symbol: otags[idx].symbol
+                    symbol: otags[idx].symbol,
+                    text: this.text.slice(otags[idx].start, rangeObj.startOffset + otags[idx].start)
                 },
                 {
                     start: rangeObj.startOffset + otags[idx].start,
                     end: rangeObj.endOffset + otags[idx].start,
-                    symbol: tag.symbol
+                    symbol: tag.symbol,
+                    text: this.text.slice(rangeObj.startOffset + otags[idx].start, rangeObj.endOffset + otags[idx].start)
                 },
                 {
                     start: rangeObj.endOffset + otags[idx].start,
                     end: otags[idx].end,
-                    symbol: otags[idx].symbol
+                    symbol: otags[idx].symbol,
+                    text: this.text.slice(rangeObj.endOffset + otags[idx].start, otags[idx].end)
                 },
                 otags.slice(idx + 1)
             );
@@ -699,7 +771,7 @@ export default {
                     this.relationship_running[this.relationship_running.running].push({
                         start_pos: tag.start,
                         end_pos: tag.end,
-                        text: this.text.slice(tag.start, tag.end)
+                        text: tag.text
                     });
                     // 上面的代码无法让Vue响应
                     this.relationship_running = _.clone(this.relationship_running);
@@ -772,10 +844,20 @@ export default {
             start_idx = Number(this.$refs['items'][start_idx].getAttribute('data'));
             end_idx = Number(this.$refs['items'][end_idx].getAttribute('data'));
 
+            let text = '';
             let otags = _.clone(this.otags);
-            let start = rangeObj.startOffset + otags[start_idx].start;
-            let end = rangeObj.endOffset + otags[end_idx].start;
-            this.relationship_running.support_text = this.text.slice(start, end);
+            for (let i = start_idx; i <= end_idx; i++) {
+                let this_start = 0;
+                let this_end = otags[i].text.length;
+                if (i === start_idx) {
+                    this_start = rangeObj.startOffset;
+                }
+                if (i === end_idx) {
+                    this_end = rangeObj.endOffset;
+                }
+                text = text + otags[i].text.slice(this_start, this_end);
+            }
+            this.relationship_running.support_text = text;
             this.relationships = _.concat(this.relationships, [this.relationship_running]);
             this.relationship_running = null;
             this.$Message.success('添加关系成功');
@@ -813,7 +895,8 @@ export default {
             let otags = this.otags.map(i => {
                 return {
                     length: i.end - i.start,
-                    symbol: i.symbol
+                    symbol: i.symbol,
+                    text: i.text
                 };
             });
             this.$emit('submit', {otags, orelationships: _.clone(this.relationships)});
