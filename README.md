@@ -12,7 +12,7 @@
 
 ## 部署指令
 
-以下命令在Ubuntu 18.04上通过了测试。
+以下命令为新版标注系统的部署指令，并在Ubuntu 18.04上通过了测试。
 
 1. 安装docker和docker-compose
 
@@ -24,32 +24,31 @@ sudo apt install docker.io docker-compose
 2. 构建镜像
 
 ```sh
+cd annotationTool2
 ./scripts.sh build
 ```
 
-3. 导入数据库结构
+3. 编译代码
 
 ```sh
-./importdb.sh kg_structure.sql
-```
-
-4. 编译代码
-
-```sh
+cd annotationTool2
 ./scripts.sh compile
 ```
 
-5. 启动网站
+4. 启动网站
 
 ```sh
+cd annotationTool2
 ./scripts.sh start
 ```
 
-6. *关闭
+5. *关闭
 
 ```sh
+cd annotationTool2
 ./scripts.sh stop
 ```
+
 ## 常见问题
 * "主动学习"是如何体现的?
 * 如何标注"一对多"和"多对一"关系?
@@ -58,3 +57,4 @@ sudo apt install docker.io docker-compose
 
 ## 联系方式
 
+新版标注工具维护人员联系方式：believe.chenyu@gmail.com
