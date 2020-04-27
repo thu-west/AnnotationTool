@@ -53,6 +53,9 @@
                                         <Radio label="many2one|多对一_一" :disabled="relationship_running !== null">
                                             <span>多对一_一</span>
                                         </Radio>
+                                        <Radio label="many2many|多对多_和_和" :disabled="relationship_running !== null">
+                                            <span>多对多_和_和</span>
+                                        </Radio>
                                     </RadioGroup>
                                 </td>
                             </tr>
@@ -177,7 +180,7 @@
                     <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="showTextModify(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{t.text}}</span></pre>
                 </Row>
                 <Row style="margin-top: 5px">
-                    <Button @click="show_confirm_modal = true">提交标注结果</Button>
+                    <Button @click="show_confirm_modal = true">查看标注结果</Button>
                 </Row>
             </div>
         </Split>
@@ -285,6 +288,10 @@
             ok-text="提交标注"
             cancel-text="取消"
             :width="60">
+            <div style="text-align: right;">
+                <Button type="text" @click="show_confirm_modal = false">取消</Button>
+                <Button type="primary" @click="handleSubmit">提交标注</Button>
+            </div>
             <Divider size="small">实体标注：</Divider>
             <Row v-for="t in tags" :key="t._id">
                 <Button class="btn" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
@@ -730,6 +737,19 @@ export default {
                 return;
             }
 
+            // hardcode
+            let prefix = '';
+            let suffix = '';
+            if (tag.name === '阴性症状') {
+                prefix = '无';
+            }
+            if (tag.name === '加重因素') {
+                suffix = '加重';
+            }
+            if (tag.name === '缓解因素') {
+                suffix = '缓解';
+            }
+
             let otags = _.clone(this.otags);
             otags = _.concat(
                 otags.slice(0, idx),
@@ -743,7 +763,7 @@ export default {
                     start: rangeObj.startOffset + otags[idx].start,
                     end: rangeObj.endOffset + otags[idx].start,
                     symbol: tag.symbol,
-                    text: this.text.slice(rangeObj.startOffset + otags[idx].start, rangeObj.endOffset + otags[idx].start)
+                    text: prefix + this.text.slice(rangeObj.startOffset + otags[idx].start, rangeObj.endOffset + otags[idx].start) + suffix
                 },
                 {
                     start: rangeObj.endOffset + otags[idx].start,

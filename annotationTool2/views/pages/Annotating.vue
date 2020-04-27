@@ -16,6 +16,15 @@
         <Row>
             <Button type="info" :disabled="prev_pos === null" @click="prevItem">上一条</Button>
             <Button type="info" :disabled="next_pos === null" @click="nextItem">下一条</Button>
+            (
+                已标注{{task_item.num_pos}}个数据，
+                正在标注第{{task_item.curr_pos}}个数据，
+                快速跳转到：
+                <Input v-model="switch_pos" style="width: 80px" icon="md-arrow-round-forward" @on-click="handleSwitch" @on-enter="handleSwitch"/>
+            )
+            <Button>
+                <router-link :to="{name: 'AnnotatingSummary', params: {task_id: $route.params.task_id}}" target="_blank">打开当前标注任务概览</router-link>
+            </Button>
         </Row>
         <br/>
         <div>
@@ -47,7 +56,8 @@ export default {
             task_item: {},
             pos: null,
             next_pos: null,
-            prev_pos: null
+            prev_pos: null,
+            switch_pos: 1
         };
     },
     async created () {
@@ -92,8 +102,21 @@ export default {
                     this.$Spin.hide();
                 }, 1000);
             } catch (e) {
+                console.error(e);
                 this.$Spin.hide();
             }
+        },
+        async handleSwitch () {
+            let pos = parseInt(this.switch_pos);
+            if (pos < 1 || pos > this.task_item.num_pos) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '跳转坐标超范围'
+                });
+                return;
+            }
+            this.pos = pos;
+            await this.updateTaskItem();
         },
         async addtag (tag) {
             await http.post('add_dataset_task_tag', {}, _.assign(_.clone(tag), {task_id: this.$route.params.task_id}));

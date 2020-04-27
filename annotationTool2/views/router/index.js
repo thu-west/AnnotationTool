@@ -11,6 +11,7 @@ import DatasetInsert from '@/pages/DatasetInsert';
 import DatasetChooseTask from '@/pages/DatasetChooseTask';
 
 import Annotating from '@/pages/Annotating';
+import AnnotatingSummary from '@/pages/AnnotatingSummary';
 
 import Test from '@/pages/Test';
 
@@ -58,6 +59,11 @@ export default new Router({
                     path: 'annotating/:task_id',
                     name: 'Annotating',
                     component: Annotating
+                },
+                {
+                    path: 'annotating/:task_id/summary',
+                    name: 'AnnotatingSummary',
+                    component: AnnotatingSummary
                 }
             ]
         },

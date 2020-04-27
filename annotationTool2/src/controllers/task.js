@@ -127,7 +127,7 @@ router.get('/get_task_item', async ctx => {
     let pos = ctx.query.pos;
     let item = null; // 查询已经存在的item
     if (pos && pos !== 'new') {
-        item = await TaskItem.findOne({task, pos}).populate('dataset_item');
+        item = await TaskItem.findOne({task, pos, by_human: true}).populate('dataset_item');
         assert(item, '参数错误');
     } else {
         item = await TaskItem.findOne({task, by_human: false}).sort('confidence').populate('dataset_item');
@@ -164,6 +164,7 @@ router.get('/get_task_item', async ctx => {
             relation_tags: item.relation_tags,
             confidence: item.confidence,
             by_human: item.by_human,
+            curr_pos: item.pos,
             next_pos,
             prev_pos
         };
@@ -173,11 +174,15 @@ router.get('/get_task_item', async ctx => {
         if (dataset_item) {
             let next_pos = null;
             let prev_pos = null;
+            let curr_pos = null;
 
             let count = await TaskItem.countDocuments({task: task, by_human: true, pos: {$exists: true}});
             if (count > 0) {
                 let max_id = (await TaskItem.findOne({task: task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
                 prev_pos = max_id;
+                curr_pos = max_id + 1;
+            } else {
+                curr_pos = 1;
             }
 
             task_info = {
@@ -187,6 +192,7 @@ router.get('/get_task_item', async ctx => {
                 relation_tags: [],
                 confidence: 0,
                 by_human: false,
+                curr_pos,
                 next_pos,
                 prev_pos
             };
@@ -199,10 +205,18 @@ router.get('/get_task_item', async ctx => {
                 prev_pos = max_id;
             }
             task_info = {
+                curr_pos: null,
                 prev_pos,
                 next_pos: null
             };
         }
+    }
+    let count = await TaskItem.countDocuments({task: task, by_human: true, pos: {$exists: true}});
+    if (count > 0) {
+        let max_id = (await TaskItem.findOne({task: task, by_human: true, pos: {$exists: true}}).sort('-pos')).pos;
+        task_info.num_pos = max_id;
+    } else {
+        task_info.num_pos = 0;
     }
 
     ctx.body = {
@@ -377,4 +391,38 @@ router.get('/download_task_triple', async ctx => {
 
     ctx.set('Content-Disposition', 'attachment; filename="download.json"');
     ctx.body = JSON.stringify({instance_of, triples}, null, 4);
+});
+
+// task_id
+router.get('/get_task_summary', async ctx => {
+    let task = await Task.findById(ctx.query.task_id).populate('dataset');
+    assert(task, '参数错误');
+
+    let tags = task.tags;
+    let entity_tags = {};
+    let relation_tags = [];
+
+    for (let t of tags) {
+        entity_tags[t.symbol] = [];
+    }
+
+    for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        for (let t of item.tags) {
+            if (_.has(entity_tags, t.symbol)) {
+                entity_tags[t.symbol].push(t.text);
+            }
+        }
+        relation_tags = _.concat(relation_tags, item.relation_tags);
+    }
+
+    for (let t of tags) {
+        entity_tags[t.name] = _.uniq(entity_tags[t.name]);
+    }
+
+    ctx.body = {
+        success: true,
+        tags,
+        entity_tags,
+        relation_tags
+    };
 });
