@@ -12,6 +12,7 @@
 ## 开发记录
 
 ## 系统功能和演示
+* 系统演示（2020-04-29录制）：<a href="https://cloud.tsinghua.edu.cn/f/89cb29c43cbb4b5593f6/">观看</a>
 
 ## 部署指令
 
