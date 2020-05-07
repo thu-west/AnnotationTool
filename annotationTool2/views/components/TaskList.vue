@@ -21,7 +21,14 @@
                         </Poptip>
                     </li>
                     <li>
-                        <a :href="'/api/download_task_triple?task_id=' + task._id">下载标注</a>
+                        <Poptip trigger="hover" title="下载标注">
+                            <div slot="content">
+                                <a :href="'/api/download_task_entities?task_id=' + task._id">下载实体标注</a>
+                                |
+                                <a :href="'/api/download_task_triple?task_id=' + task._id">下载关系标注</a>
+                            </div>
+                            <a href="#" @click.prevent="">下载标注</a>
+                        </Poptip>
                     </li>
                     <li v-if="for_edit">
                         <a href="#" @click.prevent="handleDeleteTask(task)">删除</a>

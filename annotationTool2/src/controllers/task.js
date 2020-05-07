@@ -394,6 +394,43 @@ router.get('/download_task_triple', async ctx => {
 });
 
 // task_id
+router.get('/download_task_entities', async ctx => {
+    let task = await Task.findById(ctx.query.task_id).populate('dataset');
+    assert(task, '参数错误');
+
+    let entities = [];
+
+    for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        let symbols = {};
+        let start = 0;
+        for (let t of item.tags) {
+            if (!symbols[t.symbol]) {
+                symbols[t.symbol] = [];
+            }
+            symbols[t.symbol].push({
+                start,
+                end: start + t.length,
+                text: t.text
+            });
+            start += t.length;
+        }
+        assert(start === item.dataset_item.content.length);
+
+        let names = {};
+        for (let t of task.tags) {
+            names[t.name] = symbols[t.symbol] || [];
+        }
+        entities.push({
+            text: item.dataset_item.content,
+            entities: names
+        });
+    }
+
+    ctx.set('Content-Disposition', 'attachment; filename="entities.json"');
+    ctx.body = JSON.stringify(entities, null, 4);
+});
+
+// task_id
 router.get('/get_task_summary', async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
