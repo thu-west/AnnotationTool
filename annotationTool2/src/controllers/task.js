@@ -447,9 +447,9 @@ router.get('/download_task_triple_std', async ctx => {
     ctx.set('Content-Disposition', 'attachment; filename="triple_std.txt"');
     let lines = [];
     for (let tri of triples) {
-        lines.push(tri[0]);
-        lines.push(tri[1]);
-        lines.push(tri[2] + ' .');
+        lines.push('<' + tri[0] + '>');
+        lines.push('<' + tri[1] + '>');
+        lines.push('<' + tri[2] + '> .');
         lines.push('');
     }
     if (lines.length > 0) {
