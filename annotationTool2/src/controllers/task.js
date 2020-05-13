@@ -282,6 +282,61 @@ router.get('/download_task_triple', async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 
+    let data = [];
+
+    let entity_symbol2type = new Map(); // symbol -> name
+    for (let t of task.tags) {
+        let name = `${t.name}(${t.symbol})`;
+        assert(!entity_symbol2type.has(t.symbol), '标注错误1');
+        entity_symbol2type.set(t.symbol, name);
+    }
+
+    for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        for (let r of item.relation_tags) {
+            let pairs = [];
+            for (let entities of [r.entity1, r.entity2]) {
+                let this_texts = [];
+                for (let entity of entities) {
+                    let text = entity.text;
+
+                    let start = 0;
+                    let symbol = null;
+                    for (let t of item.tags) {
+                        if (start === entity.start_pos && t.length === entity.end_pos - entity.start_pos) {
+                            symbol = t.symbol;
+                        }
+                        start += t.length;
+                    }
+                    assert(symbol !== null && symbol !== 'O', '标注错误2');
+                    if (!entity_symbol2type.has(symbol)) continue;
+
+                    this_texts.push({text, symbol: entity_symbol2type.get(symbol)});
+                }
+                pairs.push(this_texts);
+            }
+            if (pairs.length === 2 && pairs[0].length > 0 && pairs[1].length > 0) {
+                for (let p1 of pairs[0]) {
+                    for (let p2 of pairs[1]) {
+                        data.push({
+                            text: item.dataset_item.content,
+                            schema: [p1.symbol, r.relation, p2.symbol],
+                            triples: [p1.text, r.relation, p2.text, r.relation_type_text]
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    ctx.set('Content-Disposition', 'attachment; filename="triple.json"');
+    ctx.body = JSON.stringify(data, null, 4);
+});
+
+// task_id
+router.get('/download_task_triple_std', async ctx => {
+    let task = await Task.findById(ctx.query.task_id).populate('dataset');
+    assert(task, '参数错误');
+
     let instance_of = {};
     let triples = [];
 
@@ -389,8 +444,18 @@ router.get('/download_task_triple', async ctx => {
         }
     }
 
-    ctx.set('Content-Disposition', 'attachment; filename="download.json"');
-    ctx.body = JSON.stringify({instance_of, triples}, null, 4);
+    ctx.set('Content-Disposition', 'attachment; filename="triple_std.txt"');
+    let lines = [];
+    for (let tri of triples) {
+        lines.push(tri[0]);
+        lines.push(tri[1]);
+        lines.push(tri[2] + ' .');
+        lines.push('');
+    }
+    if (lines.length > 0) {
+        lines.pop();
+    }
+    ctx.body = lines.join('\n');
 });
 
 // task_id
