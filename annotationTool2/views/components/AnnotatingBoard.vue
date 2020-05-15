@@ -75,6 +75,12 @@
                                     <Button @click="autogenRelation" class="btn" size="small" type="info" ghost><Icon type="ios-aperture-outline" />关系自动生成</Button>
                                 </td>
                             </tr>
+                            <tr>
+                                <th style="min-width: 6em">字体大小:</th>
+                                <td>
+                                    <Slider v-model="font_size" :step="1" :min="5" :max="25"></Slider>
+                                </td>
+                            </tr>
                         </table>
                     </Row>
                     <Row v-if="relationship_running"> <!-- 标注窗口 -->
@@ -82,12 +88,12 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>关系类型</th>
-                                    <th>实体1</th>
-                                    <th>关系</th>
-                                    <th>实体2</th>
+                                    <th style="min-width: 5em">关系类型</th>
+                                    <th style="min-width: 9em">实体1</th>
+                                    <th style="min-width: 7em">关系</th>
+                                    <th style="min-width: 9em">实体2</th>
                                     <th>支持文本</th>
-                                    <th>#</th>
+                                    <th style="min-width: 6em">#</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -107,7 +113,7 @@
                                     </td>
                                     <td></td>
                                 </tr>
-                                <tr>
+                                <tr :style="fontSizeStyle">
                                     <td>
                                         {{ relationship_running.relation_type_text }}
                                     </td>
@@ -171,10 +177,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-if="relationships.length == 0">
+                                <tr v-if="relationships.length == 0" :style="fontSizeStyle">
                                     <td colspan="6">暂无关系</td>
                                 </tr>
-                                <tr v-for="(r, idx) in relationships.slice().reverse()" :key="idx">
+                                <tr v-for="(r, idx) in relationships.slice().reverse()" :key="idx" :style="fontSizeStyle">
                                     <td>
                                         {{ r.relation_type_text }}
                                     </td>
@@ -335,6 +341,8 @@ export default {
 
             otags: [], // {start, end, symbol, text}
 
+            font_size: 16,
+
             relation_type_with_text: '',
             relationships: [],
             relationship_modifing_idx: -1,
@@ -378,6 +386,11 @@ export default {
         }
     },
     computed: {
+        fontSizeStyle () {
+            return {
+                fontSize: this.font_size + 'px'
+            };
+        },
         running_entity1_multi () { // 正在标注的实体1是否是多个
             if (!this.relation_type_with_text) return false;
             let type = this.relation_type_with_text.split('|')[0];
