@@ -5,27 +5,26 @@
                 <Card dis-hover :shadow="false" :padding="6">
                     <h4>实体标注说明：先用鼠标选择(划取)下面的实体文字，然后点击上面对应的实体名称。双击已经标注的文本可以取消标注。鼠标右键已经标注的实体可以对实体文本进行修改。</h4>
                     <Row>
-                        <span class="btn" v-if="tags && tags.length == 0">暂无实体标签</span>
+                        <span class="btn" v-if="task.tags && task.tags.length == 0">暂无实体标签</span>
 
-                        <!-- <Button class="btn" v-for="t in tags" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button> -->
-
-                        <div v-if="tags && tags.length > 0">
-                            <Divider orientation="left" size="small">慢性期</Divider>
-                            <Button class="btn" v-for="t in tags.slice(0, 13)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                            <Divider orientation="left" size="small">急性期</Divider>
-                            <Button class="btn" v-for="t in tags.slice(13, 26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
-                            <Divider orientation="left" size="small">其他</Divider>
-                            <Button class="btn" v-for="t in tags.slice(26)" :key="t._id" @click="setTag(t)" :style="{background: colorize(t.color)}">{{t.name}}</Button>
+                        <div v-for="(s, s_idx) in task.tag_splits" :key="s_idx">
+                            <Divider orientation="left" size="small">{{s.title}}</Divider>
+                            <Button class="btn" v-for="t in task.tags.slice(s.start, s.start+s.size)" :key="t._id" @click="setTag(t)" :style="{background: t.color}">
+                                {{t.name}}
+                            </Button>
                         </div>
 
-                        <Divider orientation="left" size="small">操作</Divider>
-                        <Button class="btn" size="small" type="info" ghost @click="randomColor(); add_tag_modal=true"><Icon type="md-add" />添加或修改实体标签</Button>
-                        <Button class="btn" size="small" type="info" ghost @click="del_tag_modal=true"><Icon type="md-close" />删除实体标签</Button>
-                        <Button class="btn" size="small" type="info" ghost @click="reorder_tag_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                        <Divider size="small"><Icon type="ios-settings" />操作</Divider>
+                        <router-link :to="{name: 'AnnotatingEntityControl', params: $route.params}" target="_blank">
+                            <Button class="btn" size="small" type="info" ghost><Icon type="ios-analytics-outline" />控制面板</Button>
+                        </router-link>
+                        <Button @click="update" class="btn" size="small" type="info" ghost><Icon type="ios-refresh" />刷新</Button>
                     </Row>
                 </Card>
+                <br/>
                 <Card dis-hover :shadow="false" :padding="6">
                     <p>关系标注说明：请先选择需要标注的关系类型，然后选择需要标注的关系标签，然后依次点选“实体1”和“实体2”，然后选择(划取)支持文本。</p>
+                    <p>注：关系标注中，实体1和实体2为必填项，支持文本为可选项，可在选择完毕实体1和实体2之后，直接点击“添加实体关系”来添加无支持文本的关系。</p>
                     <Row>
                         <table class="table">
                             <tr>
@@ -62,16 +61,23 @@
                             <tr>
                                 <th style="min-width: 6em">关系标签:</th>
                                 <td>
-                                    <span class="btn" v-if="relation_tags && relation_tags.length == 0">暂无关系标签</span>
-                                    <Button class="btn" v-for="r in relation_tags" :key="r" @click="setRelation(r)" :disabled="relation_type_with_text.length === 0 || relationship_running !== null">{{r}}</Button>
-                                    <Button class="btn" size="small" type="info" ghost @click="add_relation_modal=true"><Icon type="md-add" />添加关系标签</Button>
-                                    <Button class="btn" size="small" type="info" ghost @click="del_relation_modal=true"><Icon type="md-close" />删除关系标签</Button>
-                                    <Button class="btn" size="small" type="info" ghost @click="reorder_relation_modal=true"><Icon type="ios-analytics-outline" />调整顺序</Button>
+                                    <span class="btn" v-if="task.relation_tags && task.relation_tags.length == 0">暂无关系标签</span>
+                                    <Button class="btn" v-for="r in task.relation_tags" :key="r" @click="setRelation(r)" :disabled="relation_type_with_text.length === 0 || relationship_running !== null">{{r}}</Button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th style="min-width: 6em">操作:</th>
+                                <td>
+                                    <router-link :to="{name: 'AnnotatingRelationControl', params: $route.params}" target="_blank">
+                                        <Button class="btn" size="small" type="info" ghost><Icon type="ios-analytics-outline" />控制面板</Button>
+                                    </router-link>
+                                    <Button @click="update" class="btn" size="small" type="info" ghost><Icon type="ios-refresh" />刷新</Button>
+                                    <Button @click="autogenRelation" class="btn" size="small" type="info" ghost><Icon type="ios-aperture-outline" />关系自动生成</Button>
                                 </td>
                             </tr>
                         </table>
                     </Row>
-                    <Row>
+                    <Row v-if="relationship_running"> <!-- 标注窗口 -->
                         <br/>
                         <table class="table">
                             <thead>
@@ -85,14 +91,33 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-if="relationship_running">
+                                <tr style="text-align: center">
+                                    <td></td>
+                                    <td>
+                                        <a href="#" @click.prevent="editEntity1">添加实体1</a>
+                                    </td>
+                                    <td></td>
+                                    <td>
+                                        <a href="#" @click.prevent="editEntity2">添加实体2</a>
+                                    </td>
+                                    <td>
+                                        <a href="#" @click.prevent="editSupportText">修改</a>
+                                        |
+                                        <a href="#" @click.prevent="clearSupportText">清空</a>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                                <tr>
                                     <td>
                                         {{ relationship_running.relation_type_text }}
                                     </td>
                                     <td>
                                         <ul>
-                                            <li v-for="(entity, idx) in relationship_running.entity1" :key="idx">{{ entity.text }}</li>
-                                            <li class="rplaceholder" v-if="!relationship_running.entity1 || relationship_running.running === 'entity1'" :class="{rrunning: relationship_running.running === 'entity1' }" >实体1</li>
+                                            <li v-for="(entity, idx) in relationship_running.entity1" :key="idx">
+                                                <Button @click="removeRunningEntity('entity1', idx)" type="error" size="small" shape="circle" icon="md-close" ghost></Button>
+                                                {{ entity.text }}
+                                            </li>
+                                            <li class="rplaceholder" v-if="!relationship_running.entity1 || relationship_running.entity1.length === 0 || relationship_running.running === 'entity1'" :class="{rrunning: relationship_running.running === 'entity1' }" >实体1</li>
                                             <li v-if="relationship_running.entity1 && relationship_running.entity1.length > 0 && relationship_running.running === 'entity1' && running_entity1_multi"><a href="#" @click.prevent="endEntity1">选择完毕</a></li>
                                         </ul>
                                     </td>
@@ -101,8 +126,11 @@
                                     </td>
                                     <td>
                                         <ul>
-                                            <li v-for="(entity, idx) in relationship_running.entity2" :key="idx">{{ entity.text }}</li>
-                                            <li class="rplaceholder" v-if="!relationship_running.entity2 || relationship_running.running === 'entity2'" :class="{rrunning: relationship_running.running === 'entity2' }" >实体2</li>
+                                            <li v-for="(entity, idx) in relationship_running.entity2" :key="idx">
+                                                <Button @click="removeRunningEntity('entity2', idx)" type="error" size="small" shape="circle" icon="md-close" ghost></Button>
+                                                {{ entity.text }}
+                                            </li>
+                                            <li class="rplaceholder" v-if="!relationship_running.entity2 || relationship_running.entity2.length === 0 || relationship_running.running === 'entity2'" :class="{rrunning: relationship_running.running === 'entity2' }" >实体2</li>
                                             <li v-if="relationship_running.entity2 && relationship_running.entity2.length > 0 && relationship_running.running === 'entity2' && running_entity2_multi"><a href="#" @click.prevent="endEntity2">选择完毕</a></li>
                                         </ul>
                                     </td>
@@ -113,9 +141,9 @@
                                     </td>
                                     <td>
                                         <ul>
-                                            <li v-if="relationship_running.running === 'support_text'">
+                                            <li>
                                                 <a href="#" @click.prevent="addRelation()">
-                                                    添加无支持文本的实体关系
+                                                    添加实体关系
                                                 </a>
                                             </li>
                                             <li>
@@ -125,6 +153,24 @@
                                     </td>
                                 </tr>
 
+                            </tbody>
+                        </table>
+                        <br/>
+                    </Row>
+                    <Row> <!-- 展示窗口 -->
+                        <br/>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>关系类型</th>
+                                    <th>实体1</th>
+                                    <th>关系</th>
+                                    <th>实体2</th>
+                                    <th>支持文本</th>
+                                    <th>#</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 <tr v-if="relationships.length == 0">
                                     <td colspan="6">暂无关系</td>
                                 </tr>
@@ -149,7 +195,8 @@
                                         {{ r.support_text }}
                                     </td>
                                     <td>
-                                        <Button class="btn" size="small" type="info" ghost @click="removeRelationship(relationships.length - idx - 1)"><Icon type="md-close" />删除此关系</Button>
+                                        <Button class="btn" size="small" type="info" ghost @click="modifyRelationship(relationships.length - idx - 1)"><Icon type="md-close" />修改</Button>
+                                        <Button class="btn" size="small" type="info" ghost @click="removeRelationship(relationships.length - idx - 1)"><Icon type="md-close" />删除</Button>
                                     </td>
                                 </tr>
 
@@ -177,7 +224,7 @@
             </div>
             <div slot="right" class="split-item">
                 <Row class="board">
-                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="showTextModify(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{t.text}}</span></pre>
+                    <pre class="break"><span ref="items" v-for="(t, idx) in otags" :data="idx" :key="t.start+'~'+t.end" v-on:click.right="showTextModify(idx)" v-on:click="click(idx)" v-on:mouseup="mouseup()" v-on:dblclick="dbclick(idx)" :style="{background: findColor(t.symbol)}">{{text.slice(t.start, t.end)}}</span></pre>
                 </Row>
                 <Row style="margin-top: 5px">
                     <Button @click="show_confirm_modal = true">查看标注结果</Button>
@@ -187,87 +234,7 @@
 
         <!-- -->
         <Modal
-            v-model="add_tag_modal"
-            title="添加或修改实体标签"
-            :footer-hide="true">
-            <p>注：如果”实体符号“和已经存在的实体标签的符号相同，那么会修改已经存在的标签名称和颜色，否则则会添加实体标签。</p>
-            <Form ref="tagForm" :model="tag_form" :rules="tag_rules" :label-width="80">
-                <FormItem prop="color" label="颜色">
-                    <!-- <Input type="color" v-model="tag_form.color"/> -->
-                    <ColorPicker v-model="tag_form.color" alpha />
-                </FormItem>
-                <FormItem prop="name" label="实体名称">
-                    <Input type="text" v-model="tag_form.name" placeholder="比如：时间"/>
-                </FormItem>
-                <FormItem prop="symbol" label="实体符号">
-                    <Input type="text" v-model="tag_form.symbol" placeholder="比如：MI"/>
-                </FormItem>
-                <FormItem>
-                    <Button type="primary" @click="handleTagSubmit('tagForm')">添加</Button>
-                </FormItem>
-            </Form>
-        </Modal>
-        <!-- -->
-        <Modal
-            v-model="del_tag_modal"
-            title="删除实体标签"
-            :footer-hide="true">
-            <p>点击下面的按钮选择需要被删除的实体标签</p>
-            <Button class="btn" v-for="t in tags" :key="t._id" @click="removeTag(t)">{{t.name}}</Button>
-        </Modal>
-        <!-- -->
-        <Modal
-            v-model="reorder_tag_modal"
-            title="重新排列实体标签"
-            :footer-hide="true">
-            <List border>
-                <ListItem v-for="(t, idx) in tags" :key="t._id">
-                    <Button type="warning" size="small" class="marginh" @click="tagUp(idx)" :disabled="idx == 0" ><Icon type="md-arrow-round-up" /></Button>
-                    <Button type="warning" size="small" class="marginh" @click="tagDown(idx)" :disabled="idx == tags.length - 1" ><Icon type="md-arrow-round-down" /></Button>
-                    {{t.name}}
-                </ListItem>
-            </List>
-        </Modal>
-
-        <!-- -->
-        <Modal
-            v-model="add_relation_modal"
-            title="添加关系标签"
-            :footer-hide="true">
-            <Form ref="relationForm" :model="relation_form" :rules="relation_rules" :label-width="80">
-                <FormItem prop="name" label="关系名称">
-                    <Input type="text" v-model="relation_form.name" placeholder="比如：有效"/>
-                </FormItem>
-                <FormItem>
-                    <Button type="primary" @click="handleRelationSubmit('relationForm')">添加</Button>
-                </FormItem>
-            </Form>
-        </Modal>
-        <!-- -->
-        <Modal
-            v-model="del_relation_modal"
-            title="删除关系标签"
-            :footer-hide="true">
-            <p>点击下面的按钮选择需要被删除的关系标签</p>
-            <Button class="btn" v-for="r in relation_tags" :key="r" @click="removeRelationTag(r)">{{r}}</Button>
-        </Modal>
-        <!-- -->
-        <Modal
-            v-model="reorder_relation_modal"
-            title="重新排列关系标签"
-            :footer-hide="true">
-            <List border>
-                <ListItem v-for="(r, idx) in relation_tags" :key="r">
-                    <Button type="warning" size="small" class="marginh" @click="relationTagUp(idx)" :disabled="idx == 0" ><Icon type="md-arrow-round-up" /></Button>
-                    <Button type="warning" size="small" class="marginh" @click="relationTagDown(idx)" :disabled="idx == relation_tags.length - 1" ><Icon type="md-arrow-round-down" /></Button>
-                    {{r}}
-                </ListItem>
-            </List>
-        </Modal>
-
-        <!-- -->
-        <Modal
-            v-model="modify_modal"
+            v-model="show_modify_modal"
             title="修改文本"
             :footer-hide="true">
             <Form ref="modifyForm" :model="modify_form" :rules="modify_rules" :label-width="80">
@@ -293,8 +260,8 @@
                 <Button type="primary" @click="handleSubmit">提交标注</Button>
             </div>
             <Divider size="small">实体标注：</Divider>
-            <Row v-for="t in tags" :key="t._id">
-                <Button class="btn" :style="{background: colorize(t.color)}">{{t.name}}({{t.symbol}})</Button>
+            <Row v-for="t in task.tags" :key="t._id">
+                <Button class="btn" :style="{background: t.color}">{{t.name}}({{t.symbol}})</Button>
                 <span v-if="otags.filter(ot => ot.symbol == t.symbol).length == 0">
                     : 无
                 </span>
@@ -351,16 +318,13 @@
 
 <script>
 import _ from 'lodash';
-import color from 'color';
 
-// emit: addtag({color, name, symbol})， edittag({color, name, symbol}), deltag(symbol), reordertag(symbols)
-// emit: setrelationtags(names)
+// update()
 // submit({otags, orelationships}) // [{length, symbol, text}]
 export default {
     name: 'AnnotatingBoard',
     props: {
-        tags: Array, // 实体标签
-        relation_tags: Array, // 关系标签
+        task: Object,
         text: String, // 文本
         intags: Array, // [{length, symbol, text}]
         inrelationships: Array // []
@@ -371,49 +335,14 @@ export default {
 
             otags: [], // {start, end, symbol, text}
 
-            add_tag_modal: false,
-            del_tag_modal: false,
-            reorder_tag_modal: false,
-            tag_form: {
-                color: '#fff'
-            },
-            tag_rules: {
-                color: {
-                    required: true,
-                    trigger: 'blur'
-                },
-                name: {
-                    required: true,
-                    message: '实体名称必填',
-                    trigger: 'blur'
-                },
-                symbol: {
-                    required: true,
-                    message: '实体符号必填',
-                    trigger: 'blur'
-                }
-            },
-
-            add_relation_modal: false,
-            del_relation_modal: false,
-            reorder_relation_modal: false,
-            relation_form: {
-                name: ''
-            },
-            relation_rules: {
-                name: {
-                    required: true,
-                    message: '关系名称必填',
-                    trigger: 'blur'
-                }
-            },
             relation_type_with_text: '',
             relationships: [],
-            relationship_running: null, // {running: string, entity1, relation, entity2, support}
+            relationship_modifing_idx: -1,
+            relationship_running: null, // {running: string, entity1, relation, entity2, support_text, relation_type, relation_type_text}
             last_relationship_running: Date.now(), // ms
 
             // 修改文本
-            modify_modal: false,
+            show_modify_modal: false,
             modify_idx: -1,
             modify_form: {
                 text: ''
@@ -434,7 +363,7 @@ export default {
         this.init();
     },
     watch: {
-        tags () {
+        task () {
             this.init();
         },
         text () {
@@ -465,92 +394,13 @@ export default {
         }
     },
     methods: {
-        colorize (c) {
-            // return color(c).alpha(0.7).string();
-            return c;
-        },
-        randomColor () {
-            this.tag_form.color = color.hsv(Math.floor(Math.random() * 360), 100, 100).string();
+        update () {
+            this.$emit('update');
         },
         findColor (symbol) {
-            let tag = _.find(this.tags, t => t.symbol === symbol);
+            let tag = _.find(this.task.tags, t => t.symbol === symbol);
             if (tag) return tag.color;
             return '#fff';
-        },
-        handleTagSubmit (name) {
-            this.$refs[name].validate((valid) => {
-                if (valid) {
-                    let otag = _.find(this.tags, i => i.symbol === this.tag_form.symbol);
-                    // if (otag) {
-                    //     this.$Message.error(`与'${otag.name}'实体标签具有相同的符号`);
-                    //     return;
-                    // }
-                    this.$emit(otag ? 'edittag' : 'addtag', {color: this.tag_form.color, name: this.tag_form.name, symbol: this.tag_form.symbol});
-                    this.add_tag_modal = false;
-                }
-            });
-        },
-        removeTag (tag) {
-            this.$Modal.confirm({
-                title: '确认实体标签',
-                content: `是否删除'${tag.name}'实体标签？`,
-                onOk: () => {
-                    this.$emit('deltag', tag.symbol);
-                }
-            });
-        },
-        tagUp (idx) {
-            let a = this.tags[idx];
-            let b = this.tags[idx - 1];
-            this.$set(this.tags, idx, b);
-            this.$set(this.tags, idx - 1, a);
-            this.$emit('reordertag', this.tags.map(t => t.symbol));
-        },
-        tagDown (idx) {
-            let a = this.tags[idx];
-            let b = this.tags[idx + 1];
-            this.$set(this.tags, idx, b);
-            this.$set(this.tags, idx + 1, a);
-            this.$emit('reordertag', this.tags.map(t => t.symbol));
-        },
-        handleRelationSubmit (name) {
-            this.$refs[name].validate((valid) => {
-                if (valid) {
-                    let re = _.find(this.relations, r => r === this.relation_form.name);
-                    if (re) {
-                        this.$Message.error(`与'${re}'关系标签相同`);
-                        return;
-                    }
-                    let relation_tags = _.clone(this.relation_tags);
-                    relation_tags.push(this.relation_form.name);
-                    this.$emit('setrelationtags', relation_tags);
-                    this.add_relation_modal = false;
-                }
-            });
-        },
-        removeRelationTag (name) {
-            this.$Modal.confirm({
-                title: '确认关系标签',
-                content: `是否删除'${name}'关系标签？`,
-                onOk: () => {
-                    let relation_tags = this.relation_tags.filter(r => r !== name);
-                    this.$emit('setrelationtags', relation_tags);
-                }
-            });
-        },
-        relationTagUp (idx) {
-            let a = this.relation_tags[idx];
-            let b = this.relation_tags[idx - 1];
-            this.$set(this.relation_tags, idx, b);
-            this.$set(this.relation_tags, idx - 1, a);
-            this.$emit('setrelationtags', this.relation_tags);
-        },
-        relationTagDown (idx) {
-            let a = this.relation_tags[idx];
-            let b = this.relation_tags[idx + 1];
-            this.$set(this.relation_tags, idx, b);
-            this.$set(this.relation_tags, idx + 1, a);
-            this.$emit('setrelationtags', this.relation_tags);
         },
         showTextModify (idx) {
             if (this.otags[idx].symbol === 'O') {
@@ -561,7 +411,7 @@ export default {
                 return;
             }
 
-            this.modify_modal = true;
+            this.show_modify_modal = true;
             this.modify_idx = idx;
             this.modify_form.text = this.otags[idx].text;
         },
@@ -570,7 +420,8 @@ export default {
                 if (valid) {
                     this.otags[this.modify_idx].text = this.modify_form.text;
                     this.otags = this.mergeTags(this.otags);
-                    this.modify_modal = false;
+                    this.show_modify_modal = false;
+                    this.$Message.success('修改成功');
                 }
             });
         },
@@ -621,7 +472,7 @@ export default {
             let otags = [];
             let error_flag = false;
 
-            if (!this.tags || !this.text) {
+            if (!this.task.tags || !this.text) {
                 otags = [];
             } else {
                 if (this.otags && this.otags.length > 0) {
@@ -659,7 +510,7 @@ export default {
 
             // 整理
             for (let i = 0; i < otags.length; i++) {
-                if (!_.some(this.tags, t => t.symbol === otags[i].symbol)) {
+                if (!_.some(this.task.tags, t => t.symbol === otags[i].symbol)) {
                     otags[i].symbol = 'O';
                 }
             }
@@ -737,17 +588,12 @@ export default {
                 return;
             }
 
-            // hardcode
             let prefix = '';
             let suffix = '';
-            if (tag.name === '阴性症状') {
-                prefix = '无';
-            }
-            if (tag.name === '加重因素') {
-                suffix = '加重';
-            }
-            if (tag.name === '缓解因素') {
-                suffix = '缓解';
+            let autofit = _.find(this.task.tag_autofit, fit => fit.symbol === tag.symbol);
+            if (autofit) {
+                prefix = autofit.prefix;
+                suffix = autofit.suffix;
             }
 
             let otags = _.clone(this.otags);
@@ -793,8 +639,7 @@ export default {
                         end_pos: tag.end,
                         text: tag.text
                     });
-                    // 上面的代码无法让Vue响应
-                    this.relationship_running = _.clone(this.relationship_running);
+                    this.relationship_running = _.clone(this.relationship_running); // Vue响应
                     if (this.relationship_running.running === 'entity1') {
                         if (!this.running_entity1_multi) {
                             this.relationship_running.running = 'entity2';
@@ -824,7 +669,7 @@ export default {
             if (!this.relationship_running) return;
             this.last_relationship_running = Date.now();
             if (this.relationship_running.running !== 'entity2') return;
-            if (this.relationship_running.entity1.length === 0) {
+            if (this.relationship_running.entity2.length === 0) {
                 this.$Modal.error({
                     title: '错误',
                     content: '请至少选择一个实体'
@@ -832,6 +677,80 @@ export default {
                 return;
             }
             this.relationship_running.running = 'support_text';
+        },
+        editEntity1 () {
+            this.relationship_running.entity1 = this.relationship_running.entity1 || [];
+            this.relationship_running.entity2 = this.relationship_running.entity2 || [];
+            if (!this.running_entity1_multi && this.relationship_running.entity1.length >= 1) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `关系类型"${this.relationship_running.relation_type_text}"只能有一个实体1`
+                });
+                return;
+            }
+            this.relationship_running.running = 'entity1';
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
+        },
+        editEntity2 () {
+            this.relationship_running.entity1 = this.relationship_running.entity1 || [];
+            this.relationship_running.entity2 = this.relationship_running.entity2 || [];
+            if (!this.relationship_running.entity1 || this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `请先选择实体1`
+                });
+                return;
+            }
+            if (!this.running_entity2_multi && this.relationship_running.entity2.length >= 1) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `关系类型"${this.relationship_running.relation_type_text}"只能有一个实体2`
+                });
+                return;
+            }
+            this.relationship_running.running = 'entity2';
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
+        },
+        editSupportText () {
+            this.relationship_running.entity1 = this.relationship_running.entity1 || [];
+            this.relationship_running.entity2 = this.relationship_running.entity2 || [];
+            if (!this.relationship_running.entity1 || this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `请先选择实体1`
+                });
+                return;
+            }
+            if (!this.relationship_running.entity2 || this.relationship_running.entity2.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `请先选择实体2`
+                });
+                return;
+            }
+            this.relationship_running.running = 'support_text';
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
+        },
+        clearSupportText () {
+            this.relationship_running.entity1 = this.relationship_running.entity1 || [];
+            this.relationship_running.entity2 = this.relationship_running.entity2 || [];
+            if (!this.relationship_running.entity1 || this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `请先选择实体1`
+                });
+                return;
+            }
+            if (!this.relationship_running.entity2 || this.relationship_running.entity2.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `请先选择实体2`
+                });
+                return;
+            }
+            this.relationship_running.running = 'support_text';
+            this.relationship_running.support_text = '';
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
         },
         mouseup () {
             if (!this.relationship_running || this.relationship_running.running !== 'support_text') return;
@@ -864,32 +783,92 @@ export default {
             start_idx = Number(this.$refs['items'][start_idx].getAttribute('data'));
             end_idx = Number(this.$refs['items'][end_idx].getAttribute('data'));
 
-            let text = '';
             let otags = _.clone(this.otags);
-            for (let i = start_idx; i <= end_idx; i++) {
-                let this_start = 0;
-                let this_end = otags[i].text.length;
-                if (i === start_idx) {
-                    this_start = rangeObj.startOffset;
-                }
-                if (i === end_idx) {
-                    this_end = rangeObj.endOffset;
-                }
-                text = text + otags[i].text.slice(this_start, this_end);
-            }
+            let text = this.text.slice(otags[start_idx].start + rangeObj.startOffset, otags[end_idx].start + rangeObj.endOffset);
+            // for (let i = start_idx; i <= end_idx; i++) {
+            //     let this_start = otags[i].start;
+            //     let this_end = otags[i].end;
+            //     if (i === start_idx) {
+            //         this_start = rangeObj.startOffset + otags[i].start;
+            //     }
+            //     if (i === end_idx) {
+            //         this_end = rangeObj.endOffset + otags[i].start;
+            //     }
+            //     text = text + this.text.slice(this_start, this_end);
+            // }
             this.relationship_running.support_text = text;
-            this.relationships = _.concat(this.relationships, [this.relationship_running]);
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
+            // this.relationships = _.concat(this.relationships, [this.relationship_running]);
+            // this.relationship_running = null;
+            // this.$Message.success('添加关系成功');
+        },
+        addRelation () { // 添加关系
+            if (!this.relationship_running) return;
+            if (this.relationship_running.entity1.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '请至少选择一个实体1'
+                });
+                return;
+            }
+            if (this.relationship_running.entity2.length === 0) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '请至少选择一个实体2'
+                });
+                return;
+            }
+            if (!this.running_entity1_multi && this.relationship_running.entity1.length > 1) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `关系类型"${this.relationship_running.relation_type_text}"只能有一个实体1`
+                });
+                return;
+            }
+            if (!this.running_entity2_multi && this.relationship_running.entity2.length > 1) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: `关系类型"${this.relationship_running.relation_type_text}"只能有一个实体2`
+                });
+                return;
+            }
+
+            if (this.relationship_modifing_idx >= 0) {
+                this.$set(this.relationships, this.relationship_modifing_idx, this.relationship_running);
+            } else {
+                this.relationships = _.concat(this.relationships, [this.relationship_running]);
+            }
             this.relationship_running = null;
             this.$Message.success('添加关系成功');
         },
-        addRelation () { // 添加无支持文本的关系
-            if (!this.relationship_running) return;
-            this.relationships = _.concat(this.relationships, [this.relationship_running]);
-            this.relationship_running = null;
-            this.$Message.success('添加关系成功');
+        removeRunningEntity (attr, idx) {
+            this.relationship_running[attr].splice(idx, 1);
+            this.relationship_running.running = attr;
+            this.relationship_running = _.clone(this.relationship_running); // Vue响应
         },
         removeRelationship (idx) {
+            if (this.relationship_running) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '当前正在进行关系标注，无法删除关系。'
+                });
+                return;
+            }
             this.relationships.splice(idx, 1);
+        },
+        modifyRelationship (idx) {
+            if (this.relationship_running) {
+                this.$Modal.error({
+                    title: '错误',
+                    content: '当前正在进行关系标注，无法修改关系。'
+                });
+                return;
+            }
+            this.relation_type_with_text = this.relationships[idx].relation_type + '|' + this.relationships[idx].relation_type_text;
+            this.last_relationship_running = Date.now();
+            this.relationship_modifing_idx = idx;
+            this.relationship_running = _.cloneDeep(this.relationships[idx]);
+            this.relationship_running.running = 'support_text';
         },
         dbclick (idx) {
             if (this.relationship_running || Date.now() - this.last_relationship_running < 1000) {
@@ -903,13 +882,75 @@ export default {
             otags[idx].symbol = 'O';
             this.otags = this.mergeTags(otags);
         },
-        setRelation (re) {
+        setRelation (re) { // 开始标注关系
+            this.last_relationship_running = Date.now();
+            this.relationship_modifing_idx = -1;
             this.relationship_running = {
                 running: 'entity1',
                 relation_type: this.relation_type_with_text.split('|')[0],
                 relation_type_text: this.relation_type_with_text.split('|')[1],
                 relation: re
             };
+        },
+        autogenRelation () {
+            let ignored = 0;
+            let success = 0;
+            let emit = (r) => {
+                for (let i = 0; i < 2; i++) {
+                    if (r[`entity${i + 1}`].length === 0) {
+                        ignored += 1;
+                        return;
+                    }
+                    if (r.relation_type.split('2')[i] === 'one' && r[`entity${i + 1}`].length > 1) {
+                        ignored += 1;
+                        return;
+                    }
+                }
+                success += 1;
+                this.relationships.push(r);
+            };
+
+            let search = (gen, attr, pos, r) => {
+                r[attr.slice(0, attr.length - 1)] = r[attr.slice(0, attr.length - 1)] || []; // entity1s -> entity1
+                if (attr === 'entity2s' && pos >= gen[attr].length) {
+                    r.relation_type = gen.relation_type;
+                    r.relation_type_text = gen.relation_type_text;
+                    r.relation = gen.relation;
+                    emit(r);
+                    return;
+                }
+                if (attr === 'entity1s' && pos >= gen[attr].length) {
+                    search(gen, 'entity2s', 0, r);
+                    return;
+                }
+
+                // otags: [], // {start, end, symbol, text}
+                let entities = _.cloneDeep(this.otags).filter(t => t.symbol === gen[attr][pos].symbol);
+                if (entities.length === 0) {
+                    search(gen, attr, pos + 1, r);
+                    return;
+                }
+
+                if (gen[attr][pos].type === 'one') {
+                    for (let e of entities) {
+                        let rr = _.cloneDeep(r);
+                        rr[attr.slice(0, attr.length - 1)] = _.concat(rr[attr.slice(0, attr.length - 1)], [e]);
+                        search(gen, attr, pos + 1, rr);
+                    }
+                } else { // all
+                    let rr = _.cloneDeep(r);
+                    rr[attr.slice(0, attr.length - 1)] = _.concat(rr[attr.slice(0, attr.length - 1)], entities);
+                    search(gen, attr, pos + 1, rr);
+                }
+            };
+
+            for (let gen of this.task.relation_autogen) {
+                search(gen, 'entity1s', 0, {});
+            }
+            this.$Modal.info({
+                title: '关系自动生成',
+                content: `成功生成${success}条关系，另有${ignored}条生成的关系不符合规范被忽略了。`
+            });
         },
         handleSubmit () {
             let otags = this.otags.map(i => {
@@ -920,6 +961,7 @@ export default {
                 };
             });
             this.$emit('submit', {otags, orelationships: _.clone(this.relationships)});
+            this.show_confirm_modal = false;
         }
     }
 };

@@ -3,11 +3,12 @@ let Router = require('koa-router');
 let assert = require('assert');
 let { DatasetItem, Task, TaskItem } = require('../models');
 let _ = require('lodash');
+let auth = require('../services/auth');
 
 const router = module.exports = new Router();
 
 // task_id
-router.get('/get_dataset_task', async ctx => {
+router.get('/get_dataset_task', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数非法');
     ctx.body = {
@@ -17,7 +18,7 @@ router.get('/get_dataset_task', async ctx => {
 });
 
 // task_id
-router.post('/set_dataset_task_machine', async ctx => {
+router.post('/set_dataset_task_machine', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
     task.machine_running = true;
@@ -28,91 +29,176 @@ router.post('/set_dataset_task_machine', async ctx => {
     };
 });
 
-// task_id, name, symbol, color
-router.post('/add_dataset_task_tag', async ctx => {
+// task_id, tags: {name, symbol, color}, tag_splits: {title, start, size}, tag_autofit: {symbol, prefix, suffix}
+router.post('/set_dataset_task_tags', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
-    let name = ctx.request.body.name;
-    let symbol = ctx.request.body.symbol;
-    let color = ctx.request.body.color;
-    assert(name, '实体必须有名称');
-    assert(symbol, '实体必须有标签');
-    assert(color, '实体必须有对应的颜色');
 
-    assert(symbol.length > 0 && !/\s/.test(symbol), '标签不能有空白');
-    assert(symbol !== 'O', '标签不能是O');
-    assert(!_.some(task.tags, t => t.symbol === symbol), '标签已经存在');
-    task.tags.push({name, symbol, color});
-    task.markModified('tags');
-    await task.save();
-    ctx.body = {
-        success: true
-    };
-});
+    let tags = ctx.request.body.tags;
+    assert(tags);
+    let symbols = new Set();
+    for (let t of tags) {
+        let name = t.name;
+        let symbol = t.symbol;
+        let color = t.color;
+        assert(name, '实体必须有名称');
+        assert(symbol, '实体必须有标签');
+        assert(color, '实体必须有对应的颜色');
 
-// task_id, symbol, name, color
-router.post('/modify_dataset_task_tag', async ctx => {
-    let task = await Task.findById(ctx.request.body.task_id);
-    assert(task, '参数非法');
-    let name = ctx.request.body.name;
-    let symbol = ctx.request.body.symbol;
-    let color = ctx.request.body.color;
-    assert(name, '实体必须有名称');
-    assert(symbol, '实体必须有标签');
-    assert(color, '实体必须有对应的颜色');
+        assert(symbol.length > 0 && !/\s/.test(symbol), '标签不能有空白');
+        assert(symbol !== 'O', '标签不能是O');
 
-    let t = _.find(task.tags, t => t.symbol === symbol);
-    t.name = name;
-    t.color = color;
-    task.markModified('tags');
-    await task.save();
-    ctx.body = {
-        success: true
-    };
-});
-
-// task_id, symbol
-router.post('/delete_dataset_task_tag', async ctx => {
-    let task = await Task.findById(ctx.request.body.task_id);
-    assert(task, '参数非法');
-    let symbol = ctx.request.body.symbol;
-    assert(symbol, '参数非法');
-    task.tags = task.tags.filter(t => t.symbol !== symbol);
-    await task.save();
-    ctx.body = {
-        success: true
-    };
-});
-
-// task_id, symbols
-router.post('/reorder_dataset_task_tag', async ctx => {
-    let task = await Task.findById(ctx.request.body.task_id);
-    assert(task, '参数非法');
-    let symbols = ctx.request.body.symbols;
-    assert(symbols, '参数非法');
-    assert(_.isArray(symbols));
-
-    let tags = [];
-    for (let sym of symbols) {
-        let tag = _.find(task.tags, t => t.symbol === sym);
-        assert(tag);
-        tags.push(tag);
+        assert(!symbols.has(symbol), `实体符号重复:${symbol}`);
+        symbols.add(symbol);
     }
-    task.tags = tags;
 
+    let tag_splits = ctx.request.body.tag_splits;
+    assert(tag_splits);
+    let sum = 0;
+    for (let s of tag_splits) {
+        let title = s.title;
+        let start = s.start;
+        let size = s.size;
+        assert(title, '分栏必须有标签');
+        assert(_.isNumber(start), '分栏必须有start');
+        assert(_.isNumber(size) && size >= 0, '分栏必须有size');
+        assert(start === sum, '分栏错误');
+        sum += size;
+    }
+    assert(sum === tags.length, '分栏数量不一致');
+
+    let tag_autofit = ctx.request.body.tag_autofit;
+    assert(_.isArray(tag_autofit));
+    let fit_symbols = new Set();
+    for (let fit of tag_autofit) {
+        assert(_.some(tags, t => t.symbol === fit.symbol), '参数错误');
+        assert(!fit_symbols.has(fit.symbol), '参数错误');
+        assert(_.has(fit, 'prefix') && _.isString(fit.prefix), '参数错误');
+        assert(_.has(fit, 'suffix') && _.isString(fit.suffix), '参数错误');
+        fit_symbols.add(fit.symbol);
+    }
+
+    task.tags = tags;
+    task.tag_splits = tag_splits;
+    task.tag_autofit = tag_autofit;
     await task.save();
     ctx.body = {
         success: true
     };
 });
 
-// task_id, names
-router.post('/set_dataset_task_relation_tag', async ctx => {
+// // task_id, name, symbol, color
+// router.post('/add_dataset_task_tag', async ctx => {
+//     let task = await Task.findById(ctx.request.body.task_id);
+//     assert(task, '参数非法');
+//     let name = ctx.request.body.name;
+//     let symbol = ctx.request.body.symbol;
+//     let color = ctx.request.body.color;
+//     assert(name, '实体必须有名称');
+//     assert(symbol, '实体必须有标签');
+//     assert(color, '实体必须有对应的颜色');
+
+//     assert(symbol.length > 0 && !/\s/.test(symbol), '标签不能有空白');
+//     assert(symbol !== 'O', '标签不能是O');
+//     assert(!_.some(task.tags, t => t.symbol === symbol), '标签已经存在');
+//     task.tags.push({name, symbol, color});
+//     task.markModified('tags');
+//     await task.save();
+//     ctx.body = {
+//         success: true
+//     };
+// });
+
+// // task_id, symbol, name, color
+// router.post('/modify_dataset_task_tag', async ctx => {
+//     let task = await Task.findById(ctx.request.body.task_id);
+//     assert(task, '参数非法');
+//     let name = ctx.request.body.name;
+//     let symbol = ctx.request.body.symbol;
+//     let color = ctx.request.body.color;
+//     assert(name, '实体必须有名称');
+//     assert(symbol, '实体必须有标签');
+//     assert(color, '实体必须有对应的颜色');
+
+//     let t = _.find(task.tags, t => t.symbol === symbol);
+//     t.name = name;
+//     t.color = color;
+//     task.markModified('tags');
+//     await task.save();
+//     ctx.body = {
+//         success: true
+//     };
+// });
+
+// // task_id, symbol
+// router.post('/delete_dataset_task_tag', async ctx => {
+//     let task = await Task.findById(ctx.request.body.task_id);
+//     assert(task, '参数非法');
+//     let symbol = ctx.request.body.symbol;
+//     assert(symbol, '参数非法');
+//     task.tags = task.tags.filter(t => t.symbol !== symbol);
+//     await task.save();
+//     ctx.body = {
+//         success: true
+//     };
+// });
+
+// // task_id, symbols
+// router.post('/reorder_dataset_task_tag', async ctx => {
+//     let task = await Task.findById(ctx.request.body.task_id);
+//     assert(task, '参数非法');
+//     let symbols = ctx.request.body.symbols;
+//     assert(symbols, '参数非法');
+//     assert(_.isArray(symbols));
+
+//     let tags = [];
+//     for (let sym of symbols) {
+//         let tag = _.find(task.tags, t => t.symbol === sym);
+//         assert(tag);
+//         tags.push(tag);
+//     }
+//     task.tags = tags;
+
+//     await task.save();
+//     ctx.body = {
+//         success: true
+//     };
+// });
+
+// task_id, names, relation_autogen: [{entity1s: [], entity2s: [], relation_type, relation_type_text, relation}]
+router.post('/set_dataset_task_relation_tags', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
+
     let names = ctx.request.body.names;
     assert(_.isArray(names), '参数非法');
+    for (let name of names) {
+        assert(_.isString(name) && name.length > 0, '参数非法');
+    }
+
+    let relation_autogen = ctx.request.body.relation_autogen;
+    assert(_.isArray(relation_autogen), '参数非法');
+    for (let gen of relation_autogen) {
+        assert(_.isObject(gen), '参数非法');
+        assert(_.isString(gen.relation_type), '参数非法');
+        assert(_.isString(gen.relation_type_text), '参数非法');
+        assert(_.isString(gen.relation), '参数非法');
+        assert(_.includes(gen.relation, names), '参数非法');
+
+        for (let attr of ['entity1s', 'entity2s']) {
+            assert(_.isArray(gen[attr]), '参数非法');
+            for (let entity of gen[attr]) {
+                assert(_.isObject(entity), '参数错误');
+                assert(_.has(entity, 'symbol') && _.has(entity, 'type'), '参数错误');
+
+                assert(_.includes(['all', 'one'], entity.type), '参数错误');
+                assert(_.some(task.tags, t => t.symbol === entity.symbol), '参数错误');
+            }
+        }
+    }
+
     task.relation_tags = names;
+    task.relation_autogen = relation_autogen;
     await task.save();
     ctx.body = {
         success: true
@@ -120,7 +206,7 @@ router.post('/set_dataset_task_relation_tag', async ctx => {
 });
 
 // task_id, pos?=id number | 'new'
-router.get('/get_task_item', async ctx => {
+router.get('/get_task_item', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数非法');
 
@@ -225,7 +311,7 @@ router.get('/get_task_item', async ctx => {
     };
 });
 // task_id, dataset_item_id, tags, relation_tags
-router.post('/set_task_item_tags', async ctx => {
+router.post('/set_task_item_tags', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.request.body.task_id).populate('dataset');
     assert(task, '参数错误');
     let dataset_item = await DatasetItem.findById(ctx.request.body.dataset_item_id).populate('dataset');
@@ -250,6 +336,13 @@ router.post('/set_task_item_tags', async ctx => {
     for (let r of relation_tags) {
         assert(_.isArray(r.entity1), '参数错误');
         assert(_.isArray(r.entity2), '参数错误');
+        assert(r.entity1.length > 0, '参数错误');
+        assert(r.entity2.length > 0, '参数错误');
+        for (let i = 0; i < 2; i++) {
+            if (r.relation_type.split('2')[i] === 'one' && r[`entity${i + 1}`].length > 1) {
+                assert(false, '参数错误');
+            }
+        }
         assert(_.isString(r.relation_type) && r.relation_type, '参数错误');
         assert(_.isString(r.relation_type_text) && r.relation_type_text, '参数错误');
         assert(_.isString(r.relation) && r.relation, '参数错误');
@@ -278,7 +371,7 @@ router.post('/set_task_item_tags', async ctx => {
 });
 
 // task_id
-router.get('/download_task_triple', async ctx => {
+router.get('/download_task_triple', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 
@@ -333,7 +426,7 @@ router.get('/download_task_triple', async ctx => {
 });
 
 // task_id
-router.get('/download_task_triple_std', async ctx => {
+router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 
@@ -459,7 +552,7 @@ router.get('/download_task_triple_std', async ctx => {
 });
 
 // task_id
-router.get('/download_task_entities', async ctx => {
+router.get('/download_task_entities', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 
@@ -496,7 +589,7 @@ router.get('/download_task_entities', async ctx => {
 });
 
 // task_id
-router.get('/get_task_summary', async ctx => {
+router.get('/get_task_summary', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');
 

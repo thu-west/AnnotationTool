@@ -24,8 +24,53 @@ let taskSchema = new mongoose.Schema({
         required: true,
         default: []
     },
+    tag_splits: { // 分栏
+        type: [
+            {
+                title: {type: String, required: true},
+                start: {type: Number, required: true},
+                size: {type: Number, required: true}
+            }
+        ],
+        required: true,
+        default: []
+    },
+    tag_autofit: { // 自动填充
+        type: [
+            {
+                symbol: {type: String, required: true},
+                prefix: String,
+                suffix: String
+            }
+        ],
+        required: true,
+        default: []
+    },
     relation_tags: { // 关系标签列表
         type: [String],
+        required: true,
+        default: []
+    },
+    relation_autogen: { // 关系自动生成
+        type: [
+            {
+                entity1s: [
+                    {
+                        symbol: {type: String, required: true},
+                        type: {type: String, required: true} // 类型, all | one
+                    }
+                ],
+                entity2s: [
+                    {
+                        symbol: {type: String, required: true},
+                        type: {type: String, required: true} // 类型, all | one
+                    }
+                ],
+                relation_type: String, // one2one, one2many, many2one
+                relation_type_text: String, // 一对一, 一对多_和 ...
+                relation: String
+            }
+        ],
         required: true,
         default: []
     },

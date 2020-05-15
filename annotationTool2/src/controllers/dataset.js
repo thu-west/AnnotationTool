@@ -8,11 +8,12 @@ let mzfs = require('mz/fs');
 let path = require('path');
 let uuidv1 = require('uuid/v1');
 let utils = require('../services/utils');
+let auth = require('../services/auth');
 
 const router = module.exports = new Router();
 
 // title, description
-router.post('/create_dataset', async ctx => {
+router.post('/create_dataset', auth.LoginRequired, async ctx => {
     let {title, description} = ctx.request.body;
     assert(title, '必须有数据集标题');
     await Dataset.create({title, description});
@@ -22,7 +23,7 @@ router.post('/create_dataset', async ctx => {
 });
 
 // dataset_id, title, description
-router.post('/update_dataset', async ctx => {
+router.post('/update_dataset', auth.LoginRequired, async ctx => {
     let {title, description} = ctx.request.body;
     assert(title, '必须有数据集标题');
     let dataset = await Dataset.findById(ctx.request.body.dataset_id);
@@ -36,7 +37,7 @@ router.post('/update_dataset', async ctx => {
 });
 
 // dataset_id
-router.post('/delete_dataset', async ctx => {
+router.post('/delete_dataset', auth.LoginRequired, async ctx => {
     let dataset = await Dataset.findById(ctx.request.body.dataset_id);
     assert(dataset, '数据集不存在');
     dataset.is_deleted = true;
@@ -46,7 +47,7 @@ router.post('/delete_dataset', async ctx => {
     };
 });
 
-router.get('/list_dataset', async ctx => {
+router.get('/list_dataset', auth.LoginRequired, async ctx => {
     let datasets = await Dataset.find({is_deleted: false}).sort('-_id');
     datasets = datasets.map(d => d.toJSON());
     for (let dataset of datasets) {
@@ -59,7 +60,7 @@ router.get('/list_dataset', async ctx => {
 });
 
 // dataset_id
-router.get('/get_dataset', async ctx => {
+router.get('/get_dataset', auth.LoginRequired, async ctx => {
     let dataset = await Dataset.findById(ctx.query.dataset_id);
     dataset = dataset.toJSON();
     dataset.item_num = await DatasetItem.count({dataset: dataset._id});
@@ -75,7 +76,7 @@ router.get('/get_dataset', async ctx => {
 
 // 上传数据, JSON格式，[{id: String, content: String}]
 // data, dataset_id
-router.post('/insert_dataset', body({multipart: true}), async ctx => {
+router.post('/insert_dataset', auth.LoginRequired, body({multipart: true}), async ctx => {
     let dataset = await Dataset.findById(ctx.request.body.dataset_id);
     assert(dataset, '参数非法');
     let datafile = ctx.request.files.datafile;
@@ -94,7 +95,7 @@ router.post('/insert_dataset', body({multipart: true}), async ctx => {
     };
 });
 // fileid, dataset_id
-router.post('/insert_dataset_confirm', async ctx => {
+router.post('/insert_dataset_confirm', auth.LoginRequired, async ctx => {
     let dataset = await Dataset.findById(ctx.request.body.dataset_id);
     assert(dataset, '参数非法');
     let fileid = ctx.request.body.fileid;
@@ -115,7 +116,7 @@ router.post('/insert_dataset_confirm', async ctx => {
 // 标注任务
 
 // dataset_id, title
-router.post('/create_dataset_task', async ctx => {
+router.post('/create_dataset_task', auth.LoginRequired, async ctx => {
     let dataset = await Dataset.findById(ctx.request.body.dataset_id);
     assert(dataset, '参数非法');
     let title = ctx.request.body.title;
@@ -127,7 +128,7 @@ router.post('/create_dataset_task', async ctx => {
 });
 
 // task_id
-router.post('/delete_dataset_task', async ctx => {
+router.post('/delete_dataset_task', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.request.body.task_id);
     assert(task, '参数非法');
     task.is_deleted = true;

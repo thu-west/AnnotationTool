@@ -29,12 +29,12 @@
         <br/>
         <div>
             <AnnotatingBoard
-                :tags="task.tags"
-                :relation_tags="task.relation_tags"
+                :task="task"
                 :text="task_item.content"
                 :intags="show_machine ? task_item.tags : null"
                 :inrelationships="task_item.relation_tags"
-                @addtag="addtag" @edittag="edittag" @deltag="deltag" @reordertag="reordertag" @setrelationtags="setrelationtags" @submit="submit"/>
+                @update="updateTask"
+                @submit="submit"/>
         </div>
     </div>
 </template>
@@ -82,6 +82,7 @@ export default {
         async updateTask () {
             let { data } = await http.get('get_dataset_task', {task_id: this.$route.params.task_id});
             this.task = data;
+            this.$Message.success('刷新成功');
         },
         async nextItem () {
             this.pos = this.next_pos;

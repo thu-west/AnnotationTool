@@ -7,10 +7,24 @@ mongoose.Promise = global.Promise;
 
 exports.Dataset = require('./dataset');
 exports.DatasetItem = require('./dataset_item');
-exports.Task = require('./task');
+let Task = exports.Task = require('./task');
 let TaskItem = exports.TaskItem = require('./task_item');
 
 async function buildID () {
+    for (let skip = 0; ; skip++) {
+        let task = await Task.findOne({}).skip(skip);
+        if (!task) break;
+
+        if (!task.tag_splits || !_.isArray(task.tag_splits) || _.sumBy(task.tag_splits, s => s.size) !== task.tags.length || _.some(task.tag_splits, s => !_.isNumber(s.start))) {
+            task.tag_splits = [{
+                title: '默认分栏',
+                start: 0,
+                size: task.tags.length
+            }];
+            await task.save();
+        }
+    }
+
     // await TaskItem.collection.update({}, {$unset: {pos: 1 }}, {multi: true});
     while (true) {
         let item = await TaskItem.findOne({by_human: true, pos: {$exists: false}});

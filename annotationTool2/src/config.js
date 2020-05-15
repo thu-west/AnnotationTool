@@ -20,3 +20,4 @@ if (!fs.existsSync(FILE_PATH)) {
 }
 
 exports.MACHINE_CLIENT_KEY = config['MACHINE_CLIENT_KEY'];
+exports.PASSWORD = config['PASSWORD'];

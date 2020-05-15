@@ -6,7 +6,7 @@
             </Header>
             <Layout>
                 <Sider collapsible :collapsed-width="78" v-model="isCollapsed" :style="{background: '#fff'}">
-                    <Menu theme="light" width="auto" :class="menuitemClasses">
+                    <Menu @on-select="handleSelect" theme="light" width="auto" :class="menuitemClasses">
                         <MenuItem name="index" :to="{name: 'Index'}"><Icon type="ios-home" />
                             <span>主页</span>
                         </MenuItem>
@@ -19,6 +19,9 @@
                                 <span>添加数据集</span>
                             </MenuItem>
                         </Submenu>
+                        <MenuItem name="logout"><Icon type="ios-exit" />
+                            <span>登出</span>
+                        </MenuItem>
                     </Menu>
                 </Sider>
                 <Layout :style="{padding: '24px 24px 24px'}">
@@ -34,6 +37,8 @@
 </template>
 
 <script>
+import http from '@/http';
+
 export default {
     name: 'MainLayout',
     data () {
@@ -47,6 +52,21 @@ export default {
                 'menu-item',
                 this.isCollapsed ? 'collapsed-menu' : ''
             ];
+        }
+    },
+    async created () {
+        let status = await http.get('login_status');
+        if (!status.is_logined) {
+            this.$router.push({name: 'Login'});
+        }
+    },
+    methods: {
+        async handleSelect (name) {
+            if (name === 'logout') {
+                await http.post('logout');
+                this.$Message.success('登出成功');
+                this.$router.push({name: 'Login'});
+            }
         }
     }
 };

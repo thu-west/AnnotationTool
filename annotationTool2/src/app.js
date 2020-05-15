@@ -6,6 +6,7 @@ let Router = require('koa-router');
 let bodyParser = require('koa-bodyparser');
 let path = require('path');
 let session = require('koa-session');
+let auth = require('./services/auth');
 let fs = require('fs');
 let uuidv1 = require('uuid/v1');
 let RateLimiterMemory = require('rate-limiter-flexible').RateLimiterMemory;
@@ -41,6 +42,7 @@ app.use(async (ctx, next) => {
 let api = new Router();
 
 api.use(require('koa-logger')());
+api.use(auth.authM);
 // rate limit
 const rateLimiter = new RateLimiterMemory({
     points: 100,
