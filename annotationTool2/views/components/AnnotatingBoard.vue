@@ -168,12 +168,12 @@
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>关系类型</th>
-                                    <th>实体1</th>
-                                    <th>关系</th>
-                                    <th>实体2</th>
+                                    <th style="min-width: 5em">关系类型</th>
+                                    <th style="min-width: 9em">实体1</th>
+                                    <th style="min-width: 7em">关系</th>
+                                    <th style="min-width: 9em">实体2</th>
                                     <th>支持文本</th>
-                                    <th>#</th>
+                                    <th style="min-width: 6em">#</th>
                                 </tr>
                             </thead>
                             <tbody>
