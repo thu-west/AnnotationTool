@@ -25,10 +25,10 @@
                 <h2 slot="title">关系自动生成</h2>
                 <Table stripe border :columns="autogen_columns" :data="relation_autogen">
                     <template slot-scope="{ row }" slot="entity1s">
-                        <p v-for="(e, idx) in row.entity1s" :key="idx">{{e.type === 'all' ? '全' : '一'}} | {{ findEntity(e.symbol).name }}</p>
+                        <p v-for="(e, idx) in row.entity1s" :key="idx">{{e.type === 'all' ? '全' : '一'}} | {{ findEntity(e.symbol).name }}({{ findEntity(e.symbol).symbol }})</p>
                     </template>
                     <template slot-scope="{ row }" slot="entity2s">
-                        <p v-for="(e, idx) in row.entity2s" :key="idx">{{e.type === 'all' ? '全' : '一'}} | {{ findEntity(e.symbol).name }}</p>
+                        <p v-for="(e, idx) in row.entity2s" :key="idx">{{e.type === 'all' ? '全' : '一'}} | {{ findEntity(e.symbol).name }}({{ findEntity(e.symbol).symbol }})</p>
                     </template>
                     <template slot-scope="{ index }" slot="delete">
                         <Button type="error" size="small" @click="removeAutogen(index)">删除</Button>
@@ -87,7 +87,7 @@
                         <td>
                             <div class="line" v-for="(e, idx) in autogen.entity1s" :key="idx">
                                 <Select v-model="e.symbol" style="width:200px">
-                                    <Option v-for="item in task.tags" :value="item.symbol" :key="item._id">{{ item.name }}</Option>
+                                    <Option v-for="item in task.tags" :value="item.symbol" :key="item._id">{{ item.name }}({{ item.symbol }})</Option>
                                 </Select>
                                 <Select v-model="e.type" style="width:100px">
                                     <Option value="all">全</Option>
@@ -100,7 +100,7 @@
                         <td>
                             <div class="line" v-for="(e, idx) in autogen.entity2s" :key="idx">
                                 <Select v-model="e.symbol" style="width:200px">
-                                    <Option v-for="item in task.tags" :value="item.symbol" :key="item._id">{{ item.name }}</Option>
+                                    <Option v-for="item in task.tags" :value="item.symbol" :key="item._id">{{ item.name }}({{ item.symbol }})</Option>
                                 </Select>
                                 <Select v-model="e.type" style="width:100px">
                                     <Option value="all">全</Option>
@@ -374,7 +374,7 @@ export default {
                 }
             }
 
-            this.relation_autogen.push(_.merge(entities, {relation_type, relation_type_text, relation}));
+            this.relation_autogen.push(_.cloneDeep(_.merge(entities, {relation_type, relation_type_text, relation})));
             this.filterAutogen();
             await this.updateServer();
             this.$Message.success('添加成功');
