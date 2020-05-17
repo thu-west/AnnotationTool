@@ -183,7 +183,7 @@ router.post('/set_dataset_task_relation_tags', auth.LoginRequired, async ctx => 
         assert(_.isString(gen.relation_type), '参数非法');
         assert(_.isString(gen.relation_type_text), '参数非法');
         assert(_.isString(gen.relation), '参数非法');
-        assert(_.includes(gen.relation, names), '参数非法');
+        assert(_.includes(names, gen.relation), '参数非法');
 
         for (let attr of ['entity1s', 'entity2s']) {
             assert(_.isArray(gen[attr]), '参数非法');
