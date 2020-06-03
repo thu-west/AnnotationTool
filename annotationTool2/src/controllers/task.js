@@ -465,8 +465,8 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                         start += t.length;
                     }
                     // assert(symbol !== null && symbol !== 'O', '标注错误2');
-                    if (symbol !== null && symbol !== 'O') {
-                        console.warn('标注错误2');
+                    if (symbol === null || symbol === 'O') {
+                        console.warn(`标注错误2, text = ${text}, start_pos = ${entity.start_pos}, end_pos = ${entity.end_pos}, symbol = ${symbol}`);
                         continue;
                     }
                     if (!entity_symbol2type.has(symbol)) continue;
