@@ -464,7 +464,11 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                         }
                         start += t.length;
                     }
-                    assert(symbol !== null && symbol !== 'O', '标注错误2');
+                    // assert(symbol !== null && symbol !== 'O', '标注错误2');
+                    if (symbol !== null && symbol !== 'O') {
+                        console.warn('标注错误2');
+                        continue;
+                    }
                     if (!entity_symbol2type.has(symbol)) continue;
 
                     if (!entity_text_map.has(text)) {
@@ -487,6 +491,10 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                     }
 
                     this_texts.push(`${entity_text_map.get(text)}:${text}`);
+                }
+                if (this_texts.length === 0) {
+                    console.warn('空关系实体');
+                    continue;
                 }
                 pairs.push(this_texts);
             }
@@ -530,6 +538,27 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                         r.relation,
                         pairs[1][0]
                     ]);
+                } else if (r.relation_type === 'many2many') {
+                    let v0 = `${entity_id}:${r.relation_type_text}:part1`;
+                    entity_id++;
+                    let v1 = `${entity_id}:${r.relation_type_text}:part2`;
+                    entity_id++;
+                    triples.push([v0, r.relation, v1]);
+
+                    for (let n of pairs[0]) {
+                        triples.push([
+                            n,
+                            'one_of',
+                            v0
+                        ]);
+                    }
+                    for (let n of pairs[1]) {
+                        triples.push([
+                            v1,
+                            'one_of',
+                            n
+                        ]);
+                    }
                 } else {
                     assert(false, '标注错误6');
                 }
