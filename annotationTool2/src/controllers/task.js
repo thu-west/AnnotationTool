@@ -514,9 +514,9 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                 }
                 pairs.push(this_texts);
             }
-            let triple_push = (item) => {
-                overall_triples.push(item);
-                each_triples[item.dataset_item.id].push(item);
+            let triple_push = (triple) => {
+                overall_triples.push(triple);
+                each_triples[item.dataset_item.id].push(triple);
             };
             if (pairs.length === 2 && pairs[0].length > 0 && pairs[1].length > 0) {
                 if (r.relation_type === 'one2one') {
