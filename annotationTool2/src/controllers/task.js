@@ -4,6 +4,7 @@ let assert = require('assert');
 let { DatasetItem, Task, TaskItem } = require('../models');
 let _ = require('lodash');
 let auth = require('../services/auth');
+let tar = require('tar-stream');
 
 const router = module.exports = new Router();
 
@@ -245,6 +246,7 @@ router.get('/get_task_item', auth.LoginRequired, async ctx => {
 
         task_info = {
             dataset_item: item.dataset_item._id,
+            dataset_item_id: item.dataset_item.id,
             content: item.dataset_item.content,
             tags: item.tags,
             relation_tags: item.relation_tags,
@@ -273,6 +275,7 @@ router.get('/get_task_item', auth.LoginRequired, async ctx => {
 
             task_info = {
                 dataset_item: dataset_item._id,
+                dataset_item_id: dataset_item.id,
                 content: dataset_item.content,
                 tags: [{length: dataset_item.content.length, symbol: 'O', text: dataset_item.content}],
                 relation_tags: [],
@@ -431,7 +434,8 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
     assert(task, '参数错误');
 
     let instance_of = {};
-    let triples = [];
+    let overall_triples = [];
+    let each_triples = {};
 
     let entity_id = 0;
 
@@ -449,6 +453,9 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
     let entity_text_map = new Map(); // text -> id
     let entity_text_printed = new Set(); // text|symbol
     for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        each_triples[item.dataset_item.id] = [];
+        let each_entity_text_printed = new Set(); // text|symbol
+
         for (let r of item.relation_tags) {
             let pairs = [];
             for (let entities of [r.entity1, r.entity2]) {
@@ -479,7 +486,7 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                     if (!entity_text_printed.has(text + '|' + symbol)) {
                         entity_text_printed.add(text + '|' + symbol);
 
-                        triples.push([
+                        overall_triples.push([
                             `${entity_text_map.get(text)}:${text}`,
                             'is_an_instance_of',
                             `${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`
@@ -488,6 +495,15 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                             instance_of[`${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`] = [];
                         }
                         instance_of[`${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`].push(`${entity_text_map.get(text)}:${text}`);
+                    }
+                    if (!each_entity_text_printed.has(text + '|' + symbol)) {
+                        each_entity_text_printed.add(text + '|' + symbol);
+
+                        each_triples[item.dataset_item.id].push([
+                            `${entity_text_map.get(text)}:${text}`,
+                            'is_an_instance_of',
+                            `${entity_type_map.get(entity_symbol2type.get(symbol))}:${entity_symbol2type.get(symbol)}`
+                        ]);
                     }
 
                     this_texts.push(`${entity_text_map.get(text)}:${text}`);
@@ -498,10 +514,14 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                 }
                 pairs.push(this_texts);
             }
+            let triple_push = (item) => {
+                overall_triples.push(item);
+                each_triples[item.dataset_item.id].push(item);
+            };
             if (pairs.length === 2 && pairs[0].length > 0 && pairs[1].length > 0) {
                 if (r.relation_type === 'one2one') {
                     assert(pairs[0].length === 1 && pairs[1].length === 1, '标注错误3');
-                    triples.push([
+                    triple_push([
                         pairs[0][0],
                         r.relation,
                         pairs[1][0]
@@ -510,13 +530,13 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                     assert(pairs[0].length === 1, '标注错误4');
                     let v = `${entity_id}:${r.relation_type_text}`;
                     entity_id++;
-                    triples.push([
+                    triple_push([
                         pairs[0][0],
                         r.relation,
                         v
                     ]);
                     for (let n of pairs[1]) {
-                        triples.push([
+                        triple_push([
                             v,
                             'has_a',
                             n
@@ -527,13 +547,13 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                     let v = `${entity_id}:${r.relation_type_text}`;
                     entity_id++;
                     for (let n of pairs[0]) {
-                        triples.push([
+                        triple_push([
                             n,
                             'is_a',
                             v
                         ]);
                     }
-                    triples.push([
+                    triple_push([
                         v,
                         r.relation,
                         pairs[1][0]
@@ -543,17 +563,17 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
                     entity_id++;
                     let v1 = `${entity_id}:${r.relation_type_text}:part2`;
                     entity_id++;
-                    triples.push([v0, r.relation, v1]);
+                    triple_push([v0, r.relation, v1]);
 
                     for (let n of pairs[0]) {
-                        triples.push([
+                        triple_push([
                             n,
                             'one_of',
                             v0
                         ]);
                     }
                     for (let n of pairs[1]) {
-                        triples.push([
+                        triple_push([
                             v1,
                             'one_of',
                             n
@@ -566,18 +586,29 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
         }
     }
 
-    ctx.set('Content-Disposition', 'attachment; filename="triple_std.txt"');
-    let lines = [];
-    for (let tri of triples) {
-        lines.push('<' + tri[0] + '>');
-        lines.push('<' + tri[1] + '>');
-        lines.push('<' + tri[2] + '> .');
-        lines.push('');
+    ctx.set('Content-Disposition', 'attachment; filename="triples.tar"');
+    let contentlise = (triples) => {
+        let lines = [];
+        for (let tri of triples) {
+            lines.push('<' + tri[0] + '>');
+            lines.push('<' + tri[1] + '>');
+            lines.push('<' + tri[2] + '> .');
+            lines.push('');
+        }
+        if (lines.length > 0) {
+            lines.pop();
+        }
+        return lines.join('\n');
+    };
+
+    let pack = tar.pack();
+    pack.entry({ name: 'triples_overall.txt' }, contentlise(overall_triples));
+    for (let id in each_triples) {
+        pack.entry({ name: `triples_${id}.txt` }, contentlise(each_triples[id]));
     }
-    if (lines.length > 0) {
-        lines.pop();
-    }
-    ctx.body = lines.join('\n');
+    pack.finalize();
+
+    ctx.body = pack;
 });
 
 // task_id

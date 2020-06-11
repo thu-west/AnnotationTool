@@ -30,6 +30,7 @@
     "prompts": "^2.3.0",
     "rate-limiter-flexible": "^1.1.6",
     "should": "^13.2.3",
+    "tar-stream": "^2.1.2",
     "utility": "^1.16.3",
     "uuid": "^3.3.3",
     "view-design": "^4.0.2",

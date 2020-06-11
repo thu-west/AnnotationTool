@@ -27,6 +27,10 @@
             </Button>
         </Row>
         <br/>
+        <Row>
+            <h3>当前正在标注的数据ID：{{ task_item ? task_item.dataset_item_id : 'null' }}</h3>
+        </Row>
+        <br/>
         <div>
             <AnnotatingBoard
                 :task="task"
