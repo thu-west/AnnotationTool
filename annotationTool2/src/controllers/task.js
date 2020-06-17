@@ -612,6 +612,207 @@ router.get('/download_task_triple_std', auth.LoginRequired, async ctx => {
 });
 
 // task_id
+router.get('/download_task_triple_std_v2', auth.LoginRequired, async ctx => {
+    let task = await Task.findById(ctx.query.task_id).populate('dataset');
+    assert(task, '参数错误');
+
+    let pack = tar.pack();
+
+    let contentlise = (triples) => {
+        let lines = [];
+        for (let tri of triples) {
+            lines.push('<' + tri[0] + '>');
+            lines.push('<' + tri[1] + '>');
+            lines.push('<' + tri[2] + '> .');
+            lines.push('');
+        }
+        if (lines.length > 0) {
+            lines.pop();
+        }
+        return lines.join('\n');
+    };
+
+    for (let item of await TaskItem.find({task, by_human: true}).populate('dataset_item')) {
+        let triples = [];
+        let info = {};
+        let node_id = 1;
+
+        info['原文'] = item.dataset_item.content;
+
+        // 起点：病例
+        let start_point = `病例${item.dataset_item.id}:${node_id}`;
+        node_id++;
+        triples.push([start_point, 'link_to', '原文']);
+
+        // 二级：分栏
+        let tag_split_names = [];
+        for (let i = 0; i < task.tag_splits.length; i++) {
+            tag_split_names.push(`${task.tag_splits[i].title}:${node_id}`);
+            node_id++;
+            triples.push([start_point, 'has', tag_split_names[i]]);
+        }
+
+        // 三级：实体类型
+        let tag_names = [];
+        for (let i = 0; i < task.tags.length; i++) {
+            tag_names.push(`${task.tags[i].name}:${node_id}`);
+            node_id++;
+            for (let k = 0; k < task.tag_splits.length; k++) {
+                if (task.tag_splits[k].start <= i && i < task.tag_splits[k].start + task.tag_splits[k].size) {
+                    triples.push([tag_split_names[k], 'has', tag_names[i]]);
+                }
+            }
+        }
+
+        // 四级：实体
+        let text_tag_names = [];
+        let start = 0;
+        for (let i = 0; i < item.tags.length; i++) {
+            let tag_idx = -1;
+            for (let k = 0; k < task.tags.length; k++) {
+                if (item.tags[i].symbol === task.tags[k].symbol) {
+                    tag_idx = k;
+                    break;
+                }
+            }
+            if (tag_idx >= 0) {
+                text_tag_names.push({
+                    name: `${item.tags[i].text}:${node_id}`,
+                    start: start,
+                    end: start + item.tags[i].length
+                });
+                node_id++;
+                triples.push([tag_names[tag_idx], 'has', text_tag_names[text_tag_names.length - 1].name]);
+            }
+
+            start += item.tags[i].length;
+        }
+
+        // 关系
+        let support_id = 1;
+        for (let r of item.relation_tags) {
+            let pairs = [];
+            for (let entities of [r.entity1, r.entity2]) {
+                let this_texts = [];
+                for (let entity of entities) {
+                    for (let text of text_tag_names) {
+                        if (text.start === entity.start_pos && text.end === entity.end_pos) {
+                            this_texts.push(text);
+                            break;
+                        }
+                    }
+                }
+                if (this_texts.length === 0) {
+                    continue;
+                }
+                pairs.push(this_texts);
+            }
+            if (pairs.length < 2) {
+                console.warn('空关系实体');
+                continue;
+            }
+            if (pairs[0].length > 0 && pairs[1].length > 0) {
+                if (r.relation_type === 'one2one') {
+                    assert(pairs[0].length === 1 && pairs[1].length === 1, '标注错误3');
+                    let v = `${r.relation_type_text}:${node_id}`;
+                    node_id++;
+
+                    triples.push([pairs[0][0].name, r.relation, v]);
+                    triples.push([v, 'to', pairs[1][0].name]);
+
+                    let support_text = r.support_text || '';
+                    let support_node = `支持文本:${support_id}`;
+                    support_id++;
+                    info[support_node] = support_text;
+                    triples.push([v, 'link_to', support_node]);
+                } else if (r.relation_type === 'one2many') {
+                    assert(pairs[0].length === 1, '标注错误4');
+                    let v = `${r.relation_type_text}:${node_id}`;
+                    node_id++;
+
+                    triples.push([pairs[0][0].name, r.relation, v]);
+                    for (let n of pairs[1]) {
+                        triples.push([
+                            v,
+                            'has_a',
+                            n.name
+                        ]);
+                    }
+
+                    let support_text = r.support_text || '';
+                    let support_node = `支持文本:${support_id}`;
+                    support_id++;
+                    info[support_node] = support_text;
+                    triples.push([v, 'link_to', support_node]);
+                } else if (r.relation_type === 'many2one') {
+                    assert(pairs[1].length === 1, '标注错误5');
+                    let v = `${r.relation_type_text}:${node_id}`;
+                    node_id++;
+
+                    for (let n of pairs[0]) {
+                        triples.push([
+                            n.name,
+                            'is_a',
+                            v
+                        ]);
+                    }
+                    triples.push([
+                        v,
+                        r.relation,
+                        pairs[1][0].name
+                    ]);
+
+                    let support_text = r.support_text || '';
+                    let support_node = `支持文本:${support_id}`;
+                    support_id++;
+                    info[support_node] = support_text;
+                    triples.push([v, 'link_to', support_node]);
+                } else if (r.relation_type === 'many2many') {
+                    let v1 = `${r.relation_type_text}:${node_id}:part1`;
+                    node_id++;
+                    let v2 = `${r.relation_type_text}:${node_id}:part2`;
+                    node_id++;
+
+                    triples.push([v1, r.relation, v2]);
+
+                    for (let n of pairs[0]) {
+                        triples.push([
+                            n.name,
+                            'is_one_of',
+                            v1
+                        ]);
+                    }
+                    for (let n of pairs[1]) {
+                        triples.push([
+                            v2,
+                            'has_one',
+                            n.name
+                        ]);
+                    }
+
+                    let support_text = r.support_text || '';
+                    let support_node = `支持文本:${support_id}`;
+                    support_id++;
+                    info[support_node] = support_text;
+                    triples.push([v1, 'link_to', support_node]);
+                    triples.push([v2, 'link_to', support_node]);
+                } else {
+                    assert(false, '标注错误6');
+                }
+            }
+        }
+
+        pack.entry({ name: `triples_${item.dataset_item.id}.rdf` }, contentlise(triples));
+        pack.entry({ name: `triples_${item.dataset_item.id}_info.json` }, JSON.stringify(info, null, 4));
+    }
+
+    ctx.set('Content-Disposition', 'attachment; filename="triples_v2.tar"');
+    pack.finalize();
+
+    ctx.body = pack;
+});
+
+// task_id
 router.get('/download_task_entities', auth.LoginRequired, async ctx => {
     let task = await Task.findById(ctx.query.task_id).populate('dataset');
     assert(task, '参数错误');

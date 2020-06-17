@@ -28,6 +28,8 @@
                                 <a :href="'/api/download_task_triple?task_id=' + task._id">下载关系标注</a>
                                 |
                                 <a :href="'/api/download_task_triple_std?task_id=' + task._id">下载关系三元组</a>
+                                |
+                                <a :href="'/api/download_task_triple_std_v2?task_id=' + task._id">下载关系三元组v2</a>
                             </div>
                             <a href="#" @click.prevent="">下载标注</a>
                         </Poptip>
