@@ -204,9 +204,9 @@ export default {
         async updateTask () {
             let { data } = await http.get('get_dataset_task', {task_id: this.$route.params.task_id});
             this.task = data;
-            this.tags = data.tags;
-            this.tag_splits = data.tag_splits;
-            this.tag_autofit = data.tag_autofit;
+            this.tags = data.tags || [];
+            this.tag_splits = data.tag_splits || [];
+            this.tag_autofit = data.tag_autofit || [];
         },
         filterAutofit () {
             this.tag_autofit = this.tag_autofit.filter(fit => _.some(this.tags, t => t.symbol === fit.symbol));
@@ -499,6 +499,13 @@ export default {
                             return;
                         }
                         this.tags.push({color: this.tag_form.color, name: this.tag_form.name, symbol: this.tag_form.symbol});
+                        if (this.tag_splits.length === 0) {
+                            this.tag_splits = [{
+                                title: '默认分栏',
+                                start: 0,
+                                size: 0
+                            }];
+                        }
                         this.tag_splits[this.tag_splits.length - 1].size++;
                     } else {
                         if (ot_idx < 0) {
