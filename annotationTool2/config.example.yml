@@ -1,5 +1,5 @@
 SERVER:
-  ADDRESS: 127.0.0.1
+  ADDRESS: 0.0.0.0
   PORT: 8800
   SECRET_KEYS: 'this is secret key' # 加密session用的key
   MAXAGE: 0 # 静态资源缓存时间,单位ms
@@ -10,4 +10,4 @@ MONGODB: # mongodb配置
 
 FILE_PATH: './tmp_path' # 上传文件的临时路径
 MACHINE_CLIENT_KEY: 'ftyu89yghyuhi' # 用于和主动学习客户端交互
-PASSWORD: 'password'
+PASSWORD: 'password' # 登录密码
